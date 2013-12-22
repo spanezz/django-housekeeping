@@ -71,10 +71,16 @@ class TaskExecution(object):
         else:
             self.exception = None
             self.success = True
-            log.info("%s ran successfully", self.task.IDENTIFIER)
         self.executed = True
 
     def log_stats(self):
+        if self.executed:
+            if self.success:
+                log.info("%s: ran successfully", self.task.IDENTIFIER)
+            else:
+                log.info("%s: failed", self.task.IDENTIFIER)
+        else:
+            log.info("%s: not run", self.task.IDENTIFIER)
         self.task.log_stats()
 
 class Maintenance(object):
