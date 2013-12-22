@@ -87,13 +87,16 @@ class Maintenance(object):
     """
     Maintenance runner, that runs all MaintenanceTasks from all installed apps
     """
-    def __init__(self, dry_run=False):
+    def __init__(self, dry_run=False, task_filter=None):
         self.dry_run = dry_run
 
         # List of tasks, partially sorted so that dependencies come before the
         # tasks that need them
         self.tasks = []
         for task_cls in TaskExpander(self.find_tasks()).result:
+            # Skip tasks that the filter does not want
+            if task_filter is not None and not task_filter(task_cls):
+                continue
             self.register_task(task_cls)
 
         # Task execution results
