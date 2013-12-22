@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from django.core.management.base import BaseCommand, CommandError
-from contributors.maintenance import Maintenance
+from django_maintenance.maintenance import Maintenance
 import optparse
 import sys
 import logging

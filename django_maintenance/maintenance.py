@@ -19,48 +19,13 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+from . import MaintenanceTask
 from django.conf import settings
 from django.utils.importlib import import_module
 import inspect
 import logging
 
 log = logging.getLogger(__name__)
-
-class MaintenanceTask(object):
-    """
-    A maintenance task. Any subclass of this in an appname.maintenance module
-    will be automatically found and run during maintenance
-    """
-    # Define NAME to have this task made available to other tasks as a member
-    # of Maintenance
-    NAME = None
-
-    # Unique, human and machine readable identifier for this task,
-    # automatically filled by Maintenance during task discovery
-    IDENTIFIER = None
-
-    # MaintenanceTask classes that should be run before this one
-    DEPENDS = []
-
-    def __init__(self, maint, **kw):
-        """
-        Constructor
-
-        maint: the Maintenance object
-        """
-        self.maint = maint
-
-    def run(self):
-        """
-        Run this maintenance task
-        """
-        pass
-
-    def log_stats(self):
-        """
-        Log statistics about this task's execution
-        """
-        pass
 
 class TaskExpander(object):
     """
