@@ -24,7 +24,7 @@ setup(
     description = "Pluggable maintenance framework for Django sites",
     author = ["Enrico Zini"],
     author_email = ["enrico@enricozini.org"],
-    url = "https://labs.truelite.it/git/metaredmine",
+    url = "http://git.debian.org/?p=users/enrico/django_maintenance.git",
     license = "http://www.gnu.org/licenses/agpl-3.0.html",
     packages = ["django_maintenance"],
 )
