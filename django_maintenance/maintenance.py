@@ -54,16 +54,18 @@ class TaskExecution(object):
     """
     Run a task and store info about its execution
     """
-    def __init__(self, task):
+    def __init__(self, task, mock=False):
         self.task = task
         self.executed = False
         self.exception = None
         self.success = False
+        self.mock = mock
 
     def run(self):
         # TODO: also store and log execution time
         try:
-            self.task.run()
+            if not self.mock:
+                self.task.run()
         except Exception as e:
             self.exception = e
             self.sucess = False
@@ -87,8 +89,20 @@ class Maintenance(object):
     """
     Maintenance runner, that runs all MaintenanceTasks from all installed apps
     """
-    def __init__(self, dry_run=False, task_filter=None):
+    def __init__(self, dry_run=False, task_filter=None, test_mock=None):
+        """
+        dry_run: if true, everything will be done except permanent changes
+        task_filter: set to a function to filter what tasks will be run. Note
+                     that the dependencies of a task are run even if
+                     task_filter refused them.
+        test_mock: class or list of classes whose objects won't be run even if
+                   they are dependencies of tasks that will be run. Used during
+                   tests when you know what you are doing, for example to skip
+                   a database backup phase.
+        """
+
         self.dry_run = dry_run
+        self.test_mock = test_mock
 
         # List of tasks, partially sorted so that dependencies come before the
         # tasks that need them
@@ -166,7 +180,8 @@ class Maintenance(object):
             if should_not_run is not None:
                 log.info("%s cannot run: %s", task.IDENTIFIER, should_not_run)
                 continue
-            self.results[task.IDENTIFIER] = ex = TaskExecution(task)
+            mock = self.test_mock and isinstance(task, self.test_mock)
+            self.results[task.IDENTIFIER] = ex = TaskExecution(task, mock=mock)
             ex.run()
 
     def log_stats(self):
