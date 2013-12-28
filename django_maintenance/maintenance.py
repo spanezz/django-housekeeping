@@ -93,10 +93,7 @@ class Maintenance(object):
         # List of tasks, partially sorted so that dependencies come before the
         # tasks that need them
         self.tasks = []
-        for task_cls in TaskExpander(self.find_tasks()).result:
-            # Skip tasks that the filter does not want
-            if task_filter is not None and not task_filter(task_cls):
-                continue
+        for task_cls in TaskExpander(self.find_tasks(task_filter=task_filter)).result:
             self.register_task(task_cls)
 
         # Task execution results
@@ -113,7 +110,7 @@ class Maintenance(object):
                 raise Exception("Task {} instantiated twice".format(task_cls.NAME))
             setattr(self, task_cls.NAME, task)
 
-    def find_tasks(self):
+    def find_tasks(self, task_filter=None):
         """
         Generate all MaintenanceTask subclasses found in installed apps
         """
@@ -125,6 +122,9 @@ class Maintenance(object):
             for cls_name, cls in inspect.getmembers(mod, inspect.isclass):
                 if issubclass(cls, MaintenanceTask) and cls != MaintenanceTask:
                     cls.IDENTIFIER = "{}.{}".format(app_name, cls_name)
+                    # Skip tasks that the filter does not want
+                    if task_filter is not None and not task_filter(cls):
+                        continue
                     yield cls
 
     def get_results(self, task):
