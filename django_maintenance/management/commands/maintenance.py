@@ -18,6 +18,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django_maintenance.maintenance import Maintenance
 import optparse
+import datetime
 import sys
 import logging
 
@@ -44,19 +45,50 @@ class TaskFilter(object):
 class Command(BaseCommand):
     help = 'Run site maintenance'
     option_list = BaseCommand.option_list + (
-        optparse.make_option("--quiet", action="store_true", dest="quiet", default=None, help="Disable progress reporting"),
-        optparse.make_option("--dry-run", action="store_true", dest="dry_run", default=None, help="Go through all the motions without making any changes"),
-        optparse.make_option("--include", action="append", dest="include", default=None, help="Include tasks matching this shell-like pattern. Can be used multiple times."),
-        optparse.make_option("--exclude", action="append", dest="exclude", default=None, help="Exclude tasks matching this shell-like pattern. Can be used multiple times."),
-        optparse.make_option("--list", action="store_true", dest="do_list", default=False, help="List all available tasks"),
+        optparse.make_option("--quiet", action="store_true", dest="quiet", default=None,
+                             help="Disable progress reporting"),
+        optparse.make_option("--dry-run", action="store_true", dest="dry_run", default=None,
+                             help="Go through all the motions without making any changes"),
+        optparse.make_option("--include", action="append", dest="include", default=None,
+                             help="Include tasks matching this shell-like pattern. Can be used multiple times."),
+        optparse.make_option("--exclude", action="append", dest="exclude", default=None,
+                             help="Exclude tasks matching this shell-like pattern. Can be used multiple times."),
+        optparse.make_option("--list", action="store_true", dest="do_list", default=False,
+                             help="List all available tasks"),
+        optparse.make_option("--logfile", action="store", dest="logfile", default=None,
+                             help="Also log all messages to the given file. You can use strftime escape sequences."),
+        optparse.make_option("--logfile-debug", action="store_true", dest="logfile_debug", default=False,
+                             help="Also log debug messages to the log file"),
     )
 
-    def handle(self, quiet=False, dry_run=False, include=None, exclude=None, do_list=False, *args, **opts):
+    def handle(self, quiet=False, dry_run=False, include=None, exclude=None, logfile=None, logfile_debug=False, do_list=False, *args, **opts):
         FORMAT = "%(asctime)-15s %(levelname)s %(message)s"
+        handlers = []
+
+        # If create a file logger, if requested
+        if logfile:
+            fname = datetime.datetime.utcnow().strftime(logfile)
+            file_handler = logging.FileHandler(fname, encoding="utf8")
+            file_handler.setFormatter(logging.Formatter(FORMAT))
+            if logfile_debug:
+                file_handler.setLevel(logging.DEBUG)
+            else:
+                file_handler.setLevel(logging.INFO)
+            handlers.append(file_handler)
+
+        # And a stderr logger
+        stderr_handler = logging.StreamHandler(stream=sys.stderr)
+        stderr_handler.setFormatter(logging.Formatter(FORMAT))
         if quiet:
-            logging.basicConfig(level=logging.WARNING, stream=sys.stderr, format=FORMAT)
+            stderr_handler.setLevel(logging.WARNING)
         else:
-            logging.basicConfig(level=logging.INFO, stream=sys.stderr, format=FORMAT)
+            stderr_handler.setLevel(logging.INFO)
+        handlers.append(stderr_handler)
+
+        root_logger = logging.getLogger("")
+        for h in handlers:
+            root_logger.addHandler(h)
+        root_logger.setLevel(min(x.level for x in handlers))
 
         task_filter = None
         if include is not None or exclude is not None:
