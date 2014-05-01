@@ -1,27 +1,24 @@
-# Pluggable maintenance framework for Django sites
+# Pluggable housekeeping framework for Django sites
 #
-# Copyright (C) 2013  Enrico Zini <enrico@enricozini.org>
+# Copyright (C) 2013--2014  Enrico Zini <enrico@enricozini.org>
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 3.0 of the License, or (at your option) any later version.
 #
-# This program is distributed in the hope that it will be useful,
+# This library is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
-from . import MaintenanceTask
-from django.conf import settings
-from django.utils.importlib import import_module
+from .task import Task
 import inspect
 import logging
 
@@ -85,11 +82,11 @@ class TaskExecution(object):
             log.info("%s: not run", self.task.IDENTIFIER)
         self.task.log_stats()
 
-class Maintenance(object):
+class Housekeeping(object):
     """
-    Maintenance runner, that runs all MaintenanceTasks from all installed apps
+    Housekeeping runner, that runs all Tasks from all installed apps
     """
-    def __init__(self, dry_run=False, task_filter=None, test_mock=None):
+    def __init__(self, dry_run=False, test_mock=None):
         """
         dry_run: if true, everything will be done except permanent changes
         task_filter: set to a function to filter what tasks will be run. Note
@@ -107,11 +104,16 @@ class Maintenance(object):
         # List of tasks, partially sorted so that dependencies come before the
         # tasks that need them
         self.tasks = []
-        for task_cls in TaskExpander(self.find_tasks(task_filter=task_filter)).result:
-            self.register_task(task_cls)
 
         # Task execution results
         self.results = {}
+
+    def autodiscover(self, task_filter=None):
+        """
+        Autodiscover tasks from django apps
+        """
+        for task_cls in TaskExpander(self.find_tasks(task_filter=task_filter)).result:
+            self.register_task(task_cls)
 
     def register_task(self, task_cls):
         """
@@ -126,15 +128,17 @@ class Maintenance(object):
 
     def find_tasks(self, task_filter=None):
         """
-        Generate all MaintenanceTask subclasses found in installed apps
+        Generate all Task subclasses found in installed apps
         """
+        from django.conf import settings
+        from django.utils.importlib import import_module
         for app_name in settings.INSTALLED_APPS:
             try:
-                mod = import_module("{}.maintenance".format(app_name))
+                mod = import_module("{}.housekeeping".format(app_name))
             except ImportError:
                 continue
             for cls_name, cls in inspect.getmembers(mod, inspect.isclass):
-                if issubclass(cls, MaintenanceTask) and cls != MaintenanceTask:
+                if issubclass(cls, Task) and cls != Task:
                     cls.IDENTIFIER = "{}.{}".format(app_name, cls_name)
                     # Skip tasks that the filter does not want
                     if task_filter is not None and not task_filter(cls):

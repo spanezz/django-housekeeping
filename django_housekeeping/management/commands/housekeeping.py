@@ -1,22 +1,26 @@
-# Pluggable maintenance framework for Django sites
+# Pluggable housekeeping framework for Django sites
 #
-# Copyright (C) 2013  Enrico Zini <enrico@enricozini.org>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (C) 2013--2014  Enrico Zini <enrico@enricozini.org>
 
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 3.0 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.
+
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 from django.core.management.base import BaseCommand, CommandError
-from django_maintenance.maintenance import Maintenance
+from django_housekeeping import Housekeeping
 import optparse
 import datetime
 import sys
@@ -43,7 +47,7 @@ class TaskFilter(object):
 
 
 class Command(BaseCommand):
-    help = 'Run site maintenance'
+    help = 'Run site housekeeping'
     option_list = BaseCommand.option_list + (
         optparse.make_option("--quiet", action="store_true", dest="quiet", default=None,
                              help="Disable progress reporting"),
@@ -93,7 +97,7 @@ class Command(BaseCommand):
         task_filter = None
         if include is not None or exclude is not None:
             task_filter = TaskFilter(include, exclude)
-        maint = Maintenance(dry_run=dry_run, task_filter=task_filter)
+        maint = Housekeeping(dry_run=dry_run, task_filter=task_filter)
         if do_list:
             for task in maint.tasks:
                 print(task.IDENTIFIER)
