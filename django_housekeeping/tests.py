@@ -19,9 +19,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from . import Task, Housekeeping
+from . import toposort
 import unittest
 
-class Test(unittest.TestCase):
+class TestHousekeeping(unittest.TestCase):
     def test_run(self):
         class TestTask(Task):
             run_count = 0
@@ -32,3 +33,9 @@ class Test(unittest.TestCase):
         h.register_task(TestTask)
         h.run()
         self.assertEquals(TestTask.run_count, 1)
+
+class TestToposort(unittest.TestCase):
+    def test_simple(self):
+        self.assertEquals(toposort.sort({ 0 : [2], 1: [2], 2: [3], 3: [] }), [1, 0, 2, 3])
+        self.assertRaises(ValueError, toposort.sort, { 0: [1], 1: [2], 2: [3], 3: [1] })
+        self.assertRaises(ValueError, toposort.sort, { 0: [1], 1: [0], 2: [3], 3: [2] })

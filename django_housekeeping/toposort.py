@@ -47,18 +47,15 @@ def strongly_connected_components(graph):
         stack.append(node)
 
         # Consider successors of `node`
-        try:
-            successors = graph[node]
-        except:
-            successors = []
+        successors = graph.get(node, ())
         for successor in successors:
             if successor not in lowlinks:
                 # Successor has not yet been visited; recurse on it
                 strongconnect(successor)
-                lowlinks[node] = min(lowlinks[node],lowlinks[successor])
+                lowlinks[node] = min(lowlinks[node], lowlinks[successor])
             elif successor in stack:
                 # the successor is in the stack and hence in the current strongly connected component (SCC)
-                lowlinks[node] = min(lowlinks[node],index[successor])
+                lowlinks[node] = min(lowlinks[node], index[successor])
 
         # If `node` is a root node, pop the stack and generate an SCC
         if lowlinks[node] == index[node]:
@@ -68,9 +65,9 @@ def strongly_connected_components(graph):
                 successor = stack.pop()
                 connected_component.append(successor)
                 if successor == node: break
-            component = tuple(connected_component)
+
             # storing the result
-            result.append(component)
+            result.append(connected_component)
 
     for node in graph:
         if node not in lowlinks:
@@ -80,16 +77,16 @@ def strongly_connected_components(graph):
 
 
 def topological_sort(graph):
-    count = { }
+    count = {}
     for node in graph:
         count[node] = 0
     for node in graph:
         for successor in graph[node]:
             count[successor] += 1
 
-    ready = [ node for node in graph if count[node] == 0 ]
+    ready = [node for node in graph if count[node] == 0]
 
-    result = [ ]
+    result = []
     while ready:
         node = ready.pop(-1)
         result.append(node)
@@ -102,45 +99,23 @@ def topological_sort(graph):
     return result
 
 
-def robust_topological_sort(graph):
-    """ First identify strongly connected components,
-        then perform a topological sort on these components. """
-
-    components = strongly_connected_components(graph)
-
-    node_component = { }
-    for component in components:
-        for node in component:
-            node_component[node] = component
-
-    component_graph = { }
-    for component in components:
-        component_graph[component] = [ ]
-
-    for node in graph:
-        node_c = node_component[node]
-        for successor in graph[node]:
-            successor_c = node_component[successor]
-            if node_c != successor_c:
-                component_graph[node_c].append(successor_c)
-
-    return topological_sort(component_graph)
-
-
 def sort(graph):
     """
     Linearize a dependency graph, throwing an exception if a cycle is detected
     """
-    res = []
+    # Compute the strongly connected components, throwing an exception if we
+    # see cycles
     cycles = []
-    for items in robust_topological_sort(graph):
+    for items in strongly_connected_components(graph):
         if len(items) > 1:
             cycles.append("({})".format(", ".join(unicode(x) for x in items)))
-        else:
-            res.append(items[0])
+
     if cycles:
         if len(cycles) > 1:
             raise ValueError("{} cycles detected: {}".format(len(cycles), ", ".join(cycles)))
         else:
             raise ValueError("cycle detected: {}".format(cycles[0]))
-    return res
+
+    # We know that the graph does not have cycles, so we can run
+    # topological_sort on it
+    return topological_sort(graph)

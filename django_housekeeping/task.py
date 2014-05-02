@@ -20,6 +20,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+# Order of stages.
+#
+# For any string listed here, a run_$STRING method will be called, in the
+# same order as the STAGES list.
+#
+# In each stage, tasks are run in dependency order.
+STAGES = ["main"]
+
 class Task(object):
     """
     A housekeeping task. Any subclass of this in an appname.housekeeping module
@@ -36,24 +44,31 @@ class Task(object):
     # Task classes that should be run before this one
     DEPENDS = []
 
-    def __init__(self, maint, **kw):
+    def __init__(self, hk, **kw):
         """
         Constructor
 
-        maint: the Housekeeping object
+        hk: the Housekeeping object
         """
-        self.maint = maint
+        self.hk = hk
 
-    def run(self):
+    def run_main(self, stage):
         """
         Run this housekeeping task
         """
         pass
 
-    def log_stats(self):
+    def get_stages(self):
         """
-        Log statistics about this task's execution
+        Get the ordered list of stages for this task.
         """
-        pass
+        # First look in the object or its class
+        res = getattr(self, "STAGES", None)
+        if res is not None: return res
 
+        # If that fails, look in the module
+        res = getattr(self.__module__, "STAGES", None)
+        if res is not None: return res
 
+        # If that fails, return a default
+        return ("main", )
