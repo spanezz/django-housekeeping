@@ -21,51 +21,53 @@ from __future__ import division
 from __future__ import unicode_literals
 from .task import Task
 from . import toposort
+import sys
+import time
+import datetime
 import inspect
 import logging
 
 log = logging.getLogger(__name__)
 
-class TaskExecution(object):
+class RunInfo(object):
     """
     Run a task and store info about its execution
     """
     def __init__(self, stage, task, mock=False):
         self.stage = stage
         self.task = task
+        self.mock = mock
         self.executed = False
+        self.skipped_reason = None
         self.exception = None
         self.success = False
-        self.mock = mock
+        self.elapsed = None
+        self.clock_start = time.clock()
 
-    def run(self):
-        # TODO: also store and log execution time
-        try:
-            if not self.mock:
-                meth_name = "run_{}".format(self.stage.name)
-                method = getattr(self.task, meth_name, None)
-                if method is None:
-                    log.error("%s has no method %s", self.task.IDENTIFIER, meth_name)
-                else:
-                    method(self.stage)
-        except Exception as e:
-            self.exception = e
-            self.sucess = False
-            log.exception("%s run failed", self.task.IDENTIFIER)
-        else:
-            self.exception = None
-            self.success = True
+    def set_success(self):
+        self.elapsed = datetime.timedelta(seconds=time.clock() - self.clock_start)
+        self.exception = None
+        self.skipped_reason = None
+        self.success = True
         self.executed = True
+        log.info("%s:run_%s: ran successfully, %s", self.task.IDENTIFIER, self.stage.name, self.elapsed)
 
-    def log_stats(self):
-        if self.executed:
-            if self.success:
-                log.info("%s: ran successfully", self.task.IDENTIFIER)
-            else:
-                log.info("%s: failed", self.task.IDENTIFIER)
-        else:
-            log.info("%s: not run", self.task.IDENTIFIER)
-        self.task.log_stats()
+    def set_exception(self, type, value, traceback):
+        self.elapsed = datetime.timedelta(seconds=time.clock() - self.clock_start)
+        self.exception = (type, value, traceback)
+        self.skipped_reason = None
+        self.success = False
+        self.executed = True
+        log.info("%s:run_%s: failed, %s", self.task.IDENTIFIER, self.stage.name, self.elapsed)
+
+    def set_skipped(self, reason):
+        self.elapsed = datetime.timedelta(seconds=0.0)
+        self.exception = None
+        self.skipped_reason = reason
+        self.success = False
+        self.executed = False
+        log.info("%s:run_%s: skipped: %s", self.task.IDENTIFIER, self.stage.name, self.skipped_reason)
+
 
 class Stage(object):
     def __init__(self, hk, name):
@@ -142,15 +144,42 @@ class Stage(object):
                 return "its dependency {} has not run successfully".format(t.IDENTIFIER)
         return None
 
+    def run_task(self, task, mock):
+        run_info = RunInfo(self, task, mock=mock)
+
+        # TODO: also store and log execution time
+
+        meth_name = "run_{}".format(self.name)
+        method = getattr(task, meth_name, None)
+        if method is None:
+            run_info.set_skipped("%s has no method %s", self.task.IDENTIFIER, meth_name)
+            return run_info
+
+        if mock:
+            run_info.set_success()
+        else:
+            try:
+                if not mock:
+                    method(self)
+            except:
+                log.exception("%s: %s failed", task.IDENTIFIER, meth_name)
+                run_info.set_exception(*sys.exc_info())
+            else:
+                run_info.set_success()
+
+        return run_info
+
+
     def run(self):
         for task in self.task_sequence:
             should_not_run = self.reason_task_should_not_run(task)
             if should_not_run is not None:
-                log.info("%s cannot run: %s", task.IDENTIFIER, should_not_run)
+                run_info = RunInfo(self, task)
+                run_info.set_skipped(should_not_run)
+                self.results[task.IDENTIFIER] = run_info
                 continue
             mock = self.hk.test_mock and isinstance(task, self.hk.test_mock)
-            self.results[task.IDENTIFIER] = ex = TaskExecution(self, task, mock=mock)
-            ex.run()
+            self.results[task.IDENTIFIER] = self.run_task(task, mock)
 
 
 class Housekeeping(object):
@@ -271,10 +300,10 @@ class Housekeeping(object):
         for stage in self.stage_sequence:
             self.stages[stage].run()
 
-    def log_stats(self):
-        for task in self.tasks:
-            ex = self.get_results(task)
-            if ex is None:
-                log.info("%s: not run", task.IDENTIFIER)
-            else:
-                ex.log_stats()
+    #def log_stats(self):
+    #    for task in self.tasks:
+    #        ex = self.get_results(task)
+    #        if ex is None:
+    #            log.info("%s: not run", task.IDENTIFIER)
+    #        else:
+    #            ex.log_stats()
