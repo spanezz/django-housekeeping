@@ -68,7 +68,7 @@ class TestToposort(unittest.TestCase):
         h.register_task(Backup1)
         h.register_task(LoadData)
         h.schedule()
-        order = [(stage, task.IDENTIFIER) for stage, task in h.get_schedule()]
+        order = [(stage.name, task.IDENTIFIER) for stage, task in h.get_schedule()]
         self.assertEquals(order, [
             ('backup', 'django_housekeeping.tests.Backup1'),
             ('backup', 'django_housekeeping.tests.Backup2'),
@@ -86,7 +86,7 @@ class TestToposort(unittest.TestCase):
         h = Housekeeping()
         h.register_task(Backup)
         h.schedule()
-        order = [(stage, task.IDENTIFIER) for stage, task in h.get_schedule()]
+        order = [(stage.name, task.IDENTIFIER) for stage, task in h.get_schedule()]
         self.assertEquals(order, [
             (u'backup', u'django_housekeeping.tests.Backup'),
         ])

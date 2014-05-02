@@ -19,6 +19,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+import inspect
 
 # Order of stages.
 #
@@ -66,8 +67,10 @@ class Task(object):
         res = getattr(self, "STAGES", None)
         if res is not None: return res
 
+        module = inspect.getmodule(self.__class__)
+
         # If that fails, look in the module
-        res = getattr(self.__module__, "STAGES", None)
+        res = getattr(module, "STAGES", None)
         if res is not None: return res
 
         # If that fails, return a default

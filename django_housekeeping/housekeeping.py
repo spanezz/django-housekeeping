@@ -95,18 +95,13 @@ class Stage(object):
             by_class[task.__class__] = task
             graph[task.__class__] = set()
 
-        unsatisfied = False
         for task in self.tasks:
             next = task.__class__
             for prev in task.DEPENDS:
                 if prev not in graph:
-                    unsatisfied = True
-                    log.error("%s depends on %s which does not run in stage %s", next, prev, self.name)
+                    log.debug("%s: skipping dependency %s -> %s that does not seem to be relevant for this stage", self.name, prev.IDENTIFIER, next.IDENTIFIER)
                     continue
                 graph[prev].add(next)
-
-        if unsatisfied:
-            raise ValueError("unsatisfiable task dependencies in stage {}".format(self.name))
 
         self.task_sequence = [by_class[x] for x in toposort.sort(graph)]
 
@@ -216,16 +211,23 @@ class Housekeeping(object):
         """
         from django.conf import settings
         from django.utils.importlib import import_module
+        seen = set()
         for app_name in settings.INSTALLED_APPS:
+            mod_name = "{}.housekeeping".format(app_name)
             try:
-                mod = import_module("{}.housekeeping".format(app_name))
+                mod = import_module(mod_name)
             except ImportError:
                 continue
+            log.debug("autodiscover: found module %s", mod_name)
             for cls_name, cls in inspect.getmembers(mod, inspect.isclass):
                 if issubclass(cls, Task) and cls != Task:
+                    if cls in seen: continue
+                    seen.add(cls)
                     cls.IDENTIFIER = "{}.{}".format(app_name, cls_name)
+                    log.debug("autodiscover: found task %s", cls.IDENTIFIER)
                     # Skip tasks that the filter does not want
                     if task_filter is not None and not task_filter(cls):
+                        log.debug("autodiscover: skipping task %s", cls.IDENTIFIER)
                         continue
                     self.register_task(cls)
 
@@ -238,7 +240,6 @@ class Housekeeping(object):
             self.stage_graph.setdefault(s, set())
         # Add arches for each couple in the dependency chain
         for i in range(0, len(stages) - 1):
-            log.debug("New stage dependency: %s -> %s", stages[i], stages[i+1])
             self.stage_graph[stages[i]].add(stages[i+1])
 
     def register_task(self, task_cls):
@@ -257,8 +258,8 @@ class Housekeeping(object):
         if task_cls.NAME is not None:
             if hasattr(self, task_cls.NAME):
                 raise Exception("Task {} instantiated twice".format(task_cls.NAME))
-            log.debug("sharing task object %s as %s", task_cls, task_cls.NAME)
-            setattr(self, task_cls.NAME, task)
+            log.debug("sharing task %s as %s", task.IDENTIFIER, task.NAME)
+            setattr(self, task.NAME, task)
 
         # Add stage information to the stage graph
         self._register_stage_dependencies(task.get_stages())
@@ -284,7 +285,8 @@ class Housekeeping(object):
         Generate the list of tasks as they would be executed
         """
         for stage in self.stage_sequence:
-            for task in self.stages[stage].get_schedule():
+            stage = self.stages[stage]
+            for task in stage.get_schedule():
                 yield stage, task
 
     def run(self):

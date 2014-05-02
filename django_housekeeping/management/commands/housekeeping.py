@@ -49,8 +49,6 @@ class TaskFilter(object):
 class Command(BaseCommand):
     help = 'Run site housekeeping'
     option_list = BaseCommand.option_list + (
-        optparse.make_option("--quiet", action="store_true", dest="quiet", default=None,
-                             help="Disable progress reporting"),
         optparse.make_option("--dry-run", action="store_true", dest="dry_run", default=None,
                              help="Go through all the motions without making any changes"),
         optparse.make_option("--include", action="append", dest="include", default=None,
@@ -69,6 +67,8 @@ class Command(BaseCommand):
         FORMAT = "%(asctime)-15s %(levelname)s %(message)s"
         handlers = []
 
+        verbosity = int(opts.get('verbosity'))
+
         # If create a file logger, if requested
         if logfile:
             fname = datetime.datetime.utcnow().strftime(logfile)
@@ -83,10 +83,16 @@ class Command(BaseCommand):
         # And a stderr logger
         stderr_handler = logging.StreamHandler(stream=sys.stderr)
         stderr_handler.setFormatter(logging.Formatter(FORMAT))
-        if quiet:
+        if verbosity == 0:
+            stderr_handler.setLevel(logging.ERROR)
+        elif verbosity == 1:
             stderr_handler.setLevel(logging.WARNING)
-        else:
+        elif verbosity == 2:
             stderr_handler.setLevel(logging.INFO)
+        elif verbosity == 3:
+            stderr_handler.setLevel(logging.DEBUG)
+        else:
+            stderr_handler.setLevel(logging.WARNING)
         handlers.append(stderr_handler)
 
         root_logger = logging.getLogger("")
@@ -97,10 +103,11 @@ class Command(BaseCommand):
         task_filter = None
         if include is not None or exclude is not None:
             task_filter = TaskFilter(include, exclude)
-        maint = Housekeeping(dry_run=dry_run, task_filter=task_filter)
+        hk = Housekeeping(dry_run=dry_run)
+        hk.autodiscover(task_filter=task_filter)
+        hk.schedule()
         if do_list:
-            for task in maint.tasks:
-                print(task.IDENTIFIER)
+            for stage, task in hk.get_schedule():
+                print("{}:{}".format(stage.name, task.IDENTIFIER))
         else:
-            maint.run()
-            maint.log_stats()
+            hk.run()
