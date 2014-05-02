@@ -30,7 +30,8 @@ class TaskExecution(object):
     """
     Run a task and store info about its execution
     """
-    def __init__(self, task, mock=False):
+    def __init__(self, stage, task, mock=False):
+        self.stage = stage
         self.task = task
         self.executed = False
         self.exception = None
@@ -41,7 +42,12 @@ class TaskExecution(object):
         # TODO: also store and log execution time
         try:
             if not self.mock:
-                self.task.run()
+                meth_name = "run_{}".format(self.stage.name)
+                method = getattr(self.task, meth_name, None)
+                if method is None:
+                    log.error("%s has no method %s", self.task.IDENTIFIER, meth_name)
+                else:
+                    method(self.stage)
         except Exception as e:
             self.exception = e
             self.sucess = False
@@ -87,22 +93,27 @@ class Stage(object):
             by_class[task.__class__] = task
             graph[task.__class__] = set()
 
-        unsatisfied = []
+        unsatisfied = False
         for task in self.tasks:
             next = task.__class__
             for prev in task.DEPENDS:
                 if prev not in graph:
-                    unsatisfied.append("{} depends on {}".format(next, prev))
+                    unsatisfied = True
+                    log.error("%s depends on %s which does not run in stage %s", next, prev, self.name)
+                    continue
                 graph[prev].add(next)
 
         if unsatisfied:
-            if len(unsatisfied) == 1:
-                raise ValueError("{} which does not run in stage {}".format(unsatisfied[0], self.name))
-            else:
-                raise ValueError("{} dependencies found in tasks that do not run in stage {}: {}".format(
-                    len(unsatisfied), self.name, "; ".join(unsatisfied)))
+            raise ValueError("unsatisfiable task dependencies in stage {}".format(self.name))
 
         self.task_sequence = [by_class[x] for x in toposort.sort(graph)]
+
+    def get_schedule(self):
+        """
+        Generate the list of tasks as they would be executed
+        """
+        for task in self.task_sequence:
+            yield task
 
     def get_results(self, task):
         """
@@ -138,7 +149,7 @@ class Stage(object):
                 log.info("%s cannot run: %s", task.IDENTIFIER, should_not_run)
                 continue
             mock = self.hk.test_mock and isinstance(task, self.hk.test_mock)
-            self.results[task.IDENTIFIER] = ex = TaskExecution(task, mock=mock)
+            self.results[task.IDENTIFIER] = ex = TaskExecution(self, task, mock=mock)
             ex.run()
 
 
@@ -198,12 +209,17 @@ class Housekeeping(object):
             self.stage_graph.setdefault(s, set())
         # Add arches for each couple in the dependency chain
         for i in range(0, len(stages) - 1):
-            self.stages_graph[stages[i]].add(stages[i+1])
+            log.debug("New stage dependency: %s -> %s", stages[i], stages[i+1])
+            self.stage_graph[stages[i]].add(stages[i+1])
 
     def register_task(self, task_cls):
         """
         Instantiate a task and add it as an attribute of this object
         """
+        # Make sure this class has an identifier
+        if not task_cls.IDENTIFIER:
+            task_cls.IDENTIFIER = "{}.{}".format(task_cls.__module__, task_cls.__name__)
+
         # Instantiate the task
         task = task_cls(self)
 
@@ -212,6 +228,7 @@ class Housekeeping(object):
         if task_cls.NAME is not None:
             if hasattr(self, task_cls.NAME):
                 raise Exception("Task {} instantiated twice".format(task_cls.NAME))
+            log.debug("sharing task object %s as %s", task_cls, task_cls.NAME)
             setattr(self, task_cls.NAME, task)
 
         # Add stage information to the stage graph
@@ -219,11 +236,11 @@ class Housekeeping(object):
 
         # Add the task to all its stages
         for name in task.get_stages():
-            if not hasattr(task, "run_{}".format(name)): continue
             stage = self.stages.get(name, None)
             if stage is None:
                 self.stages[name] = stage = Stage(self, name)
-            stage.add_task(task)
+            if hasattr(task, "run_{}".format(name)):
+                stage.add_task(task)
 
     def schedule(self):
         """
@@ -232,6 +249,14 @@ class Housekeeping(object):
         self.stage_sequence = toposort.sort(self.stage_graph)
         for stage in self.stages.itervalues():
             stage.schedule()
+
+    def get_schedule(self):
+        """
+        Generate the list of tasks as they would be executed
+        """
+        for stage in self.stage_sequence:
+            for task in self.stages[stage].get_schedule():
+                yield stage, task
 
     def run(self):
         """

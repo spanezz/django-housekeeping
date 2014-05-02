@@ -52,11 +52,11 @@ class Task(object):
         """
         self.hk = hk
 
-    def run_main(self, stage):
-        """
-        Run this housekeeping task
-        """
-        pass
+    #def run_main(self, stage):
+    #    """
+    #    Run this housekeeping task
+    #    """
+    #    pass
 
     def get_stages(self):
         """
