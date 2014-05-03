@@ -176,6 +176,21 @@ class Stage(object):
             mock = self.hk.test_mock and isinstance(task, self.hk.test_mock)
             self.results[task.IDENTIFIER] = self.run_task(task, mock)
 
+def schedule_task_classes(task_classes):
+    graph = {}
+
+    # Add nodes
+    for cls in task_classes:
+        graph[cls] = set()
+
+    # Add arcs
+    for cls in task_classes:
+        for dep in cls.DEPENDS:
+            graph[dep].add(cls)
+
+    # Return the sorted schedule
+    return toposort.sort(graph)
+
 
 class Housekeeping(object):
     """
@@ -268,7 +283,7 @@ class Housekeeping(object):
         Instantiate all Task objects, and schedule their execution
         """
         # Instantiate all tasks
-        for task_cls in self.task_classes:
+        for task_cls in schedule_task_classes(self.task_classes):
             # Instantiate the task
             task = task_cls(self)
 
