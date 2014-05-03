@@ -196,6 +196,8 @@ class Housekeeping(object):
         self.dry_run = dry_run
         self.test_mock = test_mock
 
+        self.task_classes = []
+
         # List of tasks for each stage
         self.stages = {}
 
@@ -250,27 +252,7 @@ class Housekeeping(object):
         if not task_cls.IDENTIFIER:
             task_cls.IDENTIFIER = "{}.{}".format(task_cls.__module__, task_cls.__name__)
 
-        # Instantiate the task
-        task = task_cls(self)
-
-        # If the task has a name, add it as an attribute of the Housekeeping
-        # object
-        if task_cls.NAME is not None:
-            if hasattr(self, task_cls.NAME):
-                raise Exception("Task {} instantiated twice".format(task_cls.NAME))
-            log.debug("sharing task %s as %s", task.IDENTIFIER, task.NAME)
-            setattr(self, task.NAME, task)
-
-        # Add stage information to the stage graph
-        self._register_stage_dependencies(task.get_stages())
-
-        # Add the task to all its stages
-        for name in task.get_stages():
-            stage = self.stages.get(name, None)
-            if stage is None:
-                self.stages[name] = stage = Stage(self, name)
-            if hasattr(task, "run_{}".format(name)):
-                stage.add_task(task)
+        self.task_classes.append(task_cls)
 
     def get_schedule(self):
         """
@@ -285,6 +267,30 @@ class Housekeeping(object):
         """
         Instantiate all Task objects, and schedule their execution
         """
+        # Instantiate all tasks
+        for task_cls in self.task_classes:
+            # Instantiate the task
+            task = task_cls(self)
+
+            # If the task has a name, add it as an attribute of the Housekeeping
+            # object
+            if task_cls.NAME is not None:
+                if hasattr(self, task_cls.NAME):
+                    raise Exception("Task {} instantiated twice".format(task_cls.NAME))
+                log.debug("sharing task %s as %s", task.IDENTIFIER, task.NAME)
+                setattr(self, task.NAME, task)
+
+            # Add stage information to the stage graph
+            self._register_stage_dependencies(task.get_stages())
+
+            # Add the task to all its stages
+            for name in task.get_stages():
+                stage = self.stages.get(name, None)
+                if stage is None:
+                    self.stages[name] = stage = Stage(self, name)
+                if hasattr(task, "run_{}".format(name)):
+                    stage.add_task(task)
+
         # Schedule execution of stages and tasks
         self.stage_sequence = toposort.sort(self.stage_graph)
         for stage in self.stages.itervalues():
