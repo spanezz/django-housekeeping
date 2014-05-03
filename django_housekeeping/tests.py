@@ -31,6 +31,7 @@ class TestHousekeeping(unittest.TestCase):
 
         h = Housekeeping()
         h.register_task(TestTask)
+        h.init()
         h.run()
         self.assertEquals(TestTask.run_count, 1)
 
@@ -67,7 +68,7 @@ class TestToposort(unittest.TestCase):
         h.register_task(Consistency)
         h.register_task(Backup1)
         h.register_task(LoadData)
-        h.schedule()
+        h.init()
         order = [(stage.name, task.IDENTIFIER) for stage, task in h.get_schedule()]
         self.assertEquals(order, [
             ('backup', 'django_housekeeping.tests.Backup1'),
@@ -85,7 +86,7 @@ class TestToposort(unittest.TestCase):
 
         h = Housekeeping()
         h.register_task(Backup)
-        h.schedule()
+        h.init()
         order = [(stage.name, task.IDENTIFIER) for stage, task in h.get_schedule()]
         self.assertEquals(order, [
             (u'backup', u'django_housekeeping.tests.Backup'),

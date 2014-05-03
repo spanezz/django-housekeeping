@@ -272,14 +272,6 @@ class Housekeeping(object):
             if hasattr(task, "run_{}".format(name)):
                 stage.add_task(task)
 
-    def schedule(self):
-        """
-        Schedule execution of stages and tasks
-        """
-        self.stage_sequence = toposort.sort(self.stage_graph)
-        for stage in self.stages.itervalues():
-            stage.schedule()
-
     def get_schedule(self):
         """
         Generate the list of tasks as they would be executed
@@ -288,6 +280,16 @@ class Housekeeping(object):
             stage = self.stages[stage]
             for task in stage.get_schedule():
                 yield stage, task
+
+    def init(self):
+        """
+        Instantiate all Task objects, and schedule their execution
+        """
+        # Schedule execution of stages and tasks
+        self.stage_sequence = toposort.sort(self.stage_graph)
+        for stage in self.stages.itervalues():
+            stage.schedule()
+
 
     def run(self):
         """

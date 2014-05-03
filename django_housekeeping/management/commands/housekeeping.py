@@ -105,7 +105,7 @@ class Command(BaseCommand):
             task_filter = TaskFilter(include, exclude)
         hk = Housekeeping(dry_run=dry_run)
         hk.autodiscover(task_filter=task_filter)
-        hk.schedule()
+        hk.init()
         if do_list:
             for stage, task in hk.get_schedule():
                 print("{}:{}".format(stage.name, task.IDENTIFIER))
