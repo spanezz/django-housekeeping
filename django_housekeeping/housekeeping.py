@@ -50,7 +50,7 @@ class RunInfo(object):
         self.skipped_reason = None
         self.success = True
         self.executed = True
-        log.info("%s:run_%s: ran successfully, %s", self.task.IDENTIFIER, self.stage.name, self.elapsed)
+        log.info("%s:%s:run_%s: ran successfully, %s", self.stage.name, self.task.IDENTIFIER, self.stage.name, self.elapsed)
 
     def set_exception(self, type, value, traceback):
         self.elapsed = datetime.timedelta(seconds=time.clock() - self.clock_start)
@@ -58,7 +58,7 @@ class RunInfo(object):
         self.skipped_reason = None
         self.success = False
         self.executed = True
-        log.info("%s:run_%s: failed, %s", self.task.IDENTIFIER, self.stage.name, self.elapsed)
+        log.info("%s:%s:run_%s: failed, %s", self.stage.name, self.task.IDENTIFIER, self.stage.name, self.elapsed)
 
     def set_skipped(self, reason):
         self.elapsed = datetime.timedelta(seconds=0.0)
@@ -66,7 +66,7 @@ class RunInfo(object):
         self.skipped_reason = reason
         self.success = False
         self.executed = False
-        log.info("%s:run_%s: skipped: %s", self.task.IDENTIFIER, self.stage.name, self.skipped_reason)
+        log.info("%s:%s:run_%s: skipped: %s", self.stage.name, self.task.IDENTIFIER, self.stage.name, self.skipped_reason)
 
 
 class Stage(object):
@@ -118,7 +118,7 @@ class Stage(object):
         """
         return self.results.get(task.IDENTIFIER, None)
 
-    def reason_task_should_not_run(self, task):
+    def reason_task_should_not_run(self, task, run_filter=None):
         """
         If the task can run, it returns None.
         Else it returns a string describing why the task should not run.
@@ -126,6 +126,11 @@ class Stage(object):
         # Check if the task already ran
         if self.get_results(task) is not None:
             return "it has already been run"
+
+        name = "{}:{}".format(self.name, task.IDENTIFIER)
+        if run_filter and not run_filter(name):
+            return "does to match current stage/task filter"
+
         # There is no need of checking dependencies recursively, since we don't
         # run a task unless all its dependencies have already been run
         # correctly
@@ -164,10 +169,9 @@ class Stage(object):
 
         return run_info
 
-
-    def run(self):
+    def run(self, run_filter=None):
         for task in self.task_sequence:
-            should_not_run = self.reason_task_should_not_run(task)
+            should_not_run = self.reason_task_should_not_run(task, run_filter=run_filter)
             if should_not_run is not None:
                 run_info = RunInfo(self, task)
                 run_info.set_skipped(should_not_run)
@@ -317,18 +321,22 @@ class Housekeeping(object):
             stage.schedule()
 
 
-    def run(self):
+    def run(self, run_filter=None):
         """
         Run all tasks, collecting run statistics.
 
         If some dependency of a task did not run correctly, the task is
         skipped.
         """
-        if self.stage_sequence is None:
-            self.schedule()
-
         for stage in self.stage_sequence:
-            self.stages[stage].run()
+            self.stages[stage].run(run_filter=run_filter)
+
+    def list_run(self, run_filter=None):
+        for stage, task in self.get_schedule():
+            name = "{}:{}".format(stage.name, task.IDENTIFIER)
+            if run_filter and not run_filter(name):
+                continue
+            yield(name)
 
     #def log_stats(self):
     #    for task in self.tasks:
