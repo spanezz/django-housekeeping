@@ -211,7 +211,7 @@ class Housekeeping(object):
         self.dry_run = dry_run
         self.test_mock = test_mock
 
-        self.task_classes = []
+        self.task_classes = set()
 
         # List of tasks for each stage
         self.stages = {}
@@ -263,11 +263,16 @@ class Housekeeping(object):
         """
         Instantiate a task and add it as an attribute of this object
         """
+        if task_cls in self.task_classes:
+            return
+
         # Make sure this class has an identifier
         if not task_cls.IDENTIFIER:
             task_cls.IDENTIFIER = "{}.{}".format(task_cls.__module__, task_cls.__name__)
+        self.task_classes.add(task_cls)
 
-        self.task_classes.append(task_cls)
+        for cls in task_cls.DEPENDS:
+            self.register_task(cls)
 
     def get_schedule(self):
         """

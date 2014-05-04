@@ -51,9 +51,13 @@ class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         optparse.make_option("--dry-run", action="store_true", dest="dry_run", default=None,
                              help="Go through all the motions without making any changes"),
-        optparse.make_option("--include", action="append", dest="include", default=None,
+        optparse.make_option("--include-stage", action="append", dest="include_stage", default=None,
+                             help="Include stages matching this shell-like pattern. Can be used multiple times."),
+        optparse.make_option("--exclude-stage", action="append", dest="exclude_stage", default=None,
+                             help="Exclude stages matching this shell-like pattern. Can be used multiple times."),
+        optparse.make_option("--include-task", action="append", dest="include_task", default=None,
                              help="Include tasks matching this shell-like pattern. Can be used multiple times."),
-        optparse.make_option("--exclude", action="append", dest="exclude", default=None,
+        optparse.make_option("--exclude-task", action="append", dest="exclude_task", default=None,
                              help="Exclude tasks matching this shell-like pattern. Can be used multiple times."),
         optparse.make_option("--list", action="store_true", dest="do_list", default=False,
                              help="List all available tasks"),
@@ -63,7 +67,7 @@ class Command(BaseCommand):
                              help="Also log debug messages to the log file"),
     )
 
-    def handle(self, quiet=False, dry_run=False, include=None, exclude=None, logfile=None, logfile_debug=False, do_list=False, *args, **opts):
+    def handle(self, dry_run=False, include_stage=None, exclude_stage=None, include_task=None, exclude_task=None, logfile=None, logfile_debug=False, do_list=False, *args, **opts):
         FORMAT = "%(asctime)-15s %(levelname)s %(message)s"
         handlers = []
 
@@ -101,8 +105,8 @@ class Command(BaseCommand):
         root_logger.setLevel(min(x.level for x in handlers))
 
         task_filter = None
-        if include is not None or exclude is not None:
-            task_filter = TaskFilter(include, exclude)
+        if include_task is not None or exclude_task is not None:
+            task_filter = TaskFilter(include_task, exclude_task)
         hk = Housekeeping(dry_run=dry_run)
         hk.autodiscover(task_filter=task_filter)
         hk.init()
