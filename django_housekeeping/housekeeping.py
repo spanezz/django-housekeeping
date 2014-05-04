@@ -163,6 +163,8 @@ class Stage(object):
             try:
                 if not mock:
                     method(self)
+            except KeyboardInterrupt:
+                raise
             except:
                 log.exception("%s: %s failed", task.IDENTIFIER, meth_name)
                 run_info.set_exception(*sys.exc_info())
