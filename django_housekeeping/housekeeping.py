@@ -21,6 +21,7 @@ from __future__ import division
 from __future__ import unicode_literals
 from .task import Task
 from . import toposort
+from collections import defaultdict
 import sys
 import time
 import datetime
@@ -69,12 +70,27 @@ class RunInfo(object):
         log.info("%s:%s:run_%s: skipped: %s", self.stage.name, self.task.IDENTIFIER, self.stage.name, self.skipped_reason)
 
 
+class Schedule(object):
+    def __init__(self):
+        self.graph = defaultdict(set)
+        self.sequence = None
+
+    def add_node(self, node):
+        self.graph.setdefault(node, set())
+
+    def add_edge(self, node_prev, node_next):
+        self.graph[node_prev].add(node_next)
+
+    def schedule(self):
+        self.sequence = toposort.sort(self.graph)
+
+
 class Stage(object):
     def __init__(self, hk, name):
         self.hk = hk
         self.name = name
         self.tasks = {}
-        self.task_sequence = None
+        self.task_schedule = Schedule()
         # Task execution results
         self.results = {}
 
@@ -86,31 +102,26 @@ class Stage(object):
         Compute the order of execution of tasks objects in this stage, and set
         self.task_sequence to the sorted list of Task objects
         """
-        # Task objects by class
-        by_class = {}
-        # Task classes dependency graph
-        graph = {}
         # Create nodes for all tasks
         for task in self.tasks.itervalues():
-            by_class[task.__class__] = task
-            graph[task.__class__] = set()
+            self.task_schedule.add_node(task.IDENTIFIER)
 
         for task in self.tasks.itervalues():
-            next = task.__class__
-            for prev in task.DEPENDS:
-                if prev not in graph:
-                    log.debug("%s: skipping dependency %s -> %s that does not seem to be relevant for this stage", self.name, prev.IDENTIFIER, next.IDENTIFIER)
+            next = task.IDENTIFIER
+            for prev in (x.IDENTIFIER for x in task.DEPENDS):
+                if prev not in self.task_schedule.graph:
+                    log.debug("%s: skipping dependency %s -> %s that does not seem to be relevant for this stage", self.name, prev, next)
                     continue
-                graph[prev].add(next)
+                self.task_schedule.add_edge(prev, next)
 
-        self.task_sequence = [by_class[x] for x in toposort.sort(graph)]
+        self.task_schedule.schedule()
 
     def get_schedule(self):
         """
         Generate the list of tasks as they would be executed
         """
-        for task in self.task_sequence:
-            yield task
+        for identifier in self.task_schedule.sequence:
+            yield self.tasks[identifier]
 
     def get_results(self, task):
         """
@@ -174,30 +185,17 @@ class Stage(object):
         return run_info
 
     def run(self, run_filter=None):
-        for task in self.task_sequence:
+        for identifier in self.task_schedule.sequence:
+            task = self.tasks[identifier]
             should_not_run = self.reason_task_should_not_run(task, run_filter=run_filter)
             if should_not_run is not None:
                 run_info = RunInfo(self, task)
                 run_info.set_skipped(should_not_run)
-                self.results[task.IDENTIFIER] = run_info
+                self.results[identifier] = run_info
                 continue
             mock = self.hk.test_mock and isinstance(task, self.hk.test_mock)
-            self.results[task.IDENTIFIER] = self.run_task(task, mock)
+            self.results[identifier] = self.run_task(task, mock)
 
-def schedule_task_classes(task_classes):
-    graph = {}
-
-    # Add nodes
-    for cls in task_classes:
-        graph[cls] = set()
-
-    # Add arcs
-    for cls in task_classes:
-        for dep in cls.DEPENDS:
-            graph[dep].add(cls)
-
-    # Return the sorted schedule
-    return toposort.sort(graph)
 
 
 class Housekeeping(object):
@@ -219,16 +217,17 @@ class Housekeeping(object):
         self.dry_run = dry_run
         self.test_mock = test_mock
 
+        # All registered task classes
         self.task_classes = set()
 
-        # List of tasks for each stage
+        # Schedule for task instantiation
+        self.task_schedule = Schedule()
+
+        # Stage objects by name
         self.stages = {}
 
-        # Dependency graph for stages
-        self.stage_graph = {}
-
-        # Ordered sequence of stages
-        self.stage_sequence = None
+        # Stage run schedule
+        self.stage_schedule = Schedule()
 
     def autodiscover(self):
         """
@@ -258,10 +257,10 @@ class Housekeeping(object):
         """
         # Add a node to the graph for each stage
         for s in stages:
-            self.stage_graph.setdefault(s, set())
+            self.stage_schedule.add_node(s)
         # Add arches for each couple in the dependency chain
         for i in range(0, len(stages) - 1):
-            self.stage_graph[stages[i]].add(stages[i+1])
+            self.stage_schedule.add_edge(stages[i], stages[i+1])
 
     def register_task(self, task_cls):
         """
@@ -274,15 +273,17 @@ class Housekeeping(object):
         if not task_cls.IDENTIFIER:
             task_cls.IDENTIFIER = "{}.{}".format(task_cls.__module__, task_cls.__name__)
         self.task_classes.add(task_cls)
+        self.task_schedule.add_node(task_cls)
 
         for cls in task_cls.DEPENDS:
             self.register_task(cls)
+            self.task_schedule.add_edge(cls, task_cls)
 
     def get_schedule(self):
         """
         Generate the list of tasks as they would be executed
         """
-        for stage in self.stage_sequence:
+        for stage in self.stage_schedule.sequence:
             stage = self.stages[stage]
             for task in stage.get_schedule():
                 yield stage, task
@@ -291,8 +292,11 @@ class Housekeeping(object):
         """
         Instantiate all Task objects, and schedule their execution
         """
+        # Schedule task instantiation
+        self.task_schedule.schedule()
+
         # Instantiate all tasks
-        for task_cls in schedule_task_classes(self.task_classes):
+        for task_cls in self.task_schedule.sequence:
             # Instantiate the task
             task = task_cls(self)
 
@@ -316,7 +320,7 @@ class Housekeeping(object):
                     stage.add_task(task)
 
         # Schedule execution of stages and tasks
-        self.stage_sequence = toposort.sort(self.stage_graph)
+        self.stage_schedule.schedule()
         for stage in self.stages.itervalues():
             stage.schedule()
 
@@ -328,7 +332,7 @@ class Housekeeping(object):
         If some dependency of a task did not run correctly, the task is
         skipped.
         """
-        for stage in self.stage_sequence:
+        for stage in self.stage_schedule.sequence:
             self.stages[stage].run(run_filter=run_filter)
 
     def list_run(self, run_filter=None):
@@ -345,3 +349,6 @@ class Housekeeping(object):
     #            log.info("%s: not run", task.IDENTIFIER)
     #        else:
     #            ex.log_stats()
+
+    #def make_dot(self, out):
+
