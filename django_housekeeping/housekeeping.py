@@ -73,13 +73,13 @@ class Stage(object):
     def __init__(self, hk, name):
         self.hk = hk
         self.name = name
-        self.tasks = []
+        self.tasks = {}
         self.task_sequence = None
         # Task execution results
         self.results = {}
 
     def add_task(self, task):
-        self.tasks.append(task)
+        self.tasks[task.IDENTIFIER] = task
 
     def schedule(self):
         """
@@ -91,11 +91,11 @@ class Stage(object):
         # Task classes dependency graph
         graph = {}
         # Create nodes for all tasks
-        for task in self.tasks:
+        for task in self.tasks.itervalues():
             by_class[task.__class__] = task
             graph[task.__class__] = set()
 
-        for task in self.tasks:
+        for task in self.tasks.itervalues():
             next = task.__class__
             for prev in task.DEPENDS:
                 if prev not in graph:
@@ -135,6 +135,8 @@ class Stage(object):
         # run a task unless all its dependencies have already been run
         # correctly
         for t in task.DEPENDS:
+            # Ignore dependencies that do not want to run in this stage
+            if t.IDENTIFIER not in self.tasks: continue
             exinfo = self.get_results(t)
             if exinfo is None:
                 return "its dependency {} has not been run".format(t.IDENTIFIER)

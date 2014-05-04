@@ -91,3 +91,29 @@ class TestToposort(unittest.TestCase):
         self.assertEquals(order, [
             (u'backup', u'django_housekeeping.tests.Backup'),
         ])
+
+class TestDependencies(unittest.TestCase):
+    def test_skipstage(self):
+        class Associator(Task):
+            run_count = 0
+            call_history = []
+            NAME = "associate"
+            STAGES = ["main", "stats"]
+            def run_stats(self, stage):
+                Associator.run_count += 1
+            def __call__(self, name):
+                self.call_history.append(name)
+
+        class AssociateFoo(Task):
+            DEPENDS = [Associator]
+            def run_main(self, stage):
+                self.hk.associate("foo")
+
+        h = Housekeeping()
+        h.register_task(Associator)
+        h.register_task(AssociateFoo)
+        h.init()
+        h.run()
+
+        self.assertEquals(Associator.run_count, 1)
+        self.assertEquals(Associator.call_history, ["foo"])
