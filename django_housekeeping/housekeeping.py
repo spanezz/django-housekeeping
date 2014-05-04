@@ -226,7 +226,7 @@ class Housekeeping(object):
         # Ordered sequence of stages
         self.stage_sequence = None
 
-    def autodiscover(self, task_filter=None):
+    def autodiscover(self):
         """
         Autodiscover tasks from django apps
         """
@@ -246,10 +246,6 @@ class Housekeeping(object):
                     seen.add(cls)
                     cls.IDENTIFIER = "{}.{}".format(app_name, cls_name)
                     log.debug("autodiscover: found task %s", cls.IDENTIFIER)
-                    # Skip tasks that the filter does not want
-                    if task_filter is not None and not task_filter(cls):
-                        log.debug("autodiscover: skipping task %s", cls.IDENTIFIER)
-                        continue
                     self.register_task(cls)
 
     def _register_stage_dependencies(self, stages):
