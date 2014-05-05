@@ -269,9 +269,11 @@ class Housekeeping(object):
     """
     Housekeeping runner, that runs all Tasks from all installed apps
     """
-    def __init__(self, dry_run=False, test_mock=None, outdir=None, report=False):
+    def __init__(self, outdir=None, dry_run=False, test_mock=None):
         """
         dry_run: if true, everything will be done except permanent changes
+        outdir: root directory where we can create one directory for each
+                housekeeping run, where the run output will be stored
         task_filter: set to a function to filter what tasks will be run. Note
                      that the dependencies of a task are run even if
                      task_filter refused them.
