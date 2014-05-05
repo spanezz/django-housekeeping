@@ -25,27 +25,38 @@ import os, os.path
 class Report(object):
     def __init__(self, hk):
         self.hk = hk
+        self.dotfiles = []
+        self.root = None
+
+    def make_dotfile(self, name):
+        self.dotfiles.append(name)
+        return io.open(os.path.join(self.root, name), "wt", encoding="utf8")
 
     def generate(self):
         if not self.hk.outdir: return
         # Main report dir
-        root = self.hk.outdir.make_path("report")
+        self.root = self.hk.outdir.make_path("report")
 
         # .dot files with dependency graphs
-        with io.open(os.path.join(root, "tasks.dot"), "wt", encoding="utf8") as out:
+        with self.make_dotfile("tasks.dot") as out:
             print("digraph TASKS {", file=out)
             print('  label="Tasks"', file=out)
             self.hk.task_schedule.make_dot(out, formatter=lambda x:x.IDENTIFIER)
             print("}", file=out)
-        with io.open(os.path.join(root, "stages.dot"), "wt", encoding="utf8") as out:
+        with self.make_dotfile("stages.dot") as out:
             print("digraph STAGES {", file=out)
             print('  label="Stages"', file=out)
             self.hk.stage_schedule.make_dot(out)
             print("}", file=out)
         for stage in self.hk.stages.itervalues():
-            with io.open(os.path.join(root, "stage-{}.dot".format(stage.name)), "wt", encoding="utf8") as out:
+            with self.make_dotfile("stage-{}.dot".format(stage.name)) as out:
                 print("digraph {} {{".format(stage.name), file=out)
                 print('  label="Stage {}"'.format(stage.name), file=out)
                 stage.task_schedule.make_dot(out)
                 print("}", file=out)
+
+        # Makefile to build the HTML report
+        with io.open(os.path.join(self.root, "Makefile"), "wt", encoding="utf8") as out:
+            print("%.png: %.dot", file=out)
+            print("\tdot -T png $< -o $@", file=out)
 
