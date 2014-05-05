@@ -133,7 +133,7 @@ class TestReport(unittest.TestCase):
             STAGES = ["main", "stats"]
             def run_main(self, stage): pass
             def run_stats(self, stage): pass
-        h = Housekeeping(outdir=self.root, report=True)
+        h = Housekeeping(outdir=self.root)
         h.register_task(TestTask)
         h.init()
         h.run()
