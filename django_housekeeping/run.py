@@ -411,11 +411,6 @@ class Housekeeping(object):
         for stage in self.stages.itervalues():
             stage.schedule()
 
-        if self.outdir:
-            self.report.generate()
-            self.outdir.cleanup()
-
-
     def run(self, run_filter=None):
         """
         Run all tasks, collecting run statistics.
@@ -425,6 +420,10 @@ class Housekeeping(object):
         """
         for stage in self.stage_schedule.sequence:
             self.stages[stage].run(run_filter=run_filter)
+
+        if self.outdir:
+            self.report.generate()
+            self.outdir.cleanup()
 
     def list_run(self, run_filter=None):
         for stage, task in self.get_schedule():
