@@ -84,6 +84,26 @@ class Schedule(object):
     def schedule(self):
         self.sequence = toposort.sort(self.graph)
 
+    def make_dot(self, out, formatter=unicode):
+        for node in self.sequence:
+            print('  "{}"'.format(formatter(node)), file=out)
+
+        # Arcs that have been selected as the final sequence
+        selected = set()
+        for i in xrange(len(self.sequence) - 1):
+            selected.add((self.sequence[i], self.sequence[i+1]))
+
+        for prev, arcs in self.graph.iteritems():
+            for next in arcs:
+                if (prev, next) in selected:
+                    selected.discard((prev, next))
+                    style = " [color=red,penwidth=3.0]"
+                else:
+                    style = ""
+                print('  "{}" -> "{}"{};'.format(formatter(prev), formatter(next), style), file=out)
+
+        for prev, next in selected:
+            print('  "{}" -> "{}" [color=red, style=dashed];'.format(formatter(prev), formatter(next)), file=out)
 
 class Stage(object):
     def __init__(self, hk, name):
@@ -350,5 +370,19 @@ class Housekeeping(object):
     #        else:
     #            ex.log_stats()
 
-    #def make_dot(self, out):
+    def make_dot(self, out):
+        print("digraph TASKS {", file=out)
+        print('  label="Tasks"', file=out)
+        self.task_schedule.make_dot(out, formatter=lambda x:x.IDENTIFIER)
+        print("}", file=out)
 
+        print("digraph STAGES {", file=out)
+        print('  label="Stages"', file=out)
+        self.stage_schedule.make_dot(out)
+        print("}", file=out)
+
+        for stage in self.stages.itervalues():
+            print("digraph {} {{".format(stage.name), file=out)
+            print('  label="Stage {}"'.format(stage.name), file=out)
+            stage.task_schedule.make_dot(out)
+            print("}", file=out)

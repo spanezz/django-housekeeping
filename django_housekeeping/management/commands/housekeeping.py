@@ -61,9 +61,11 @@ class Command(BaseCommand):
                              help="Also log all messages to the given file. You can use strftime escape sequences."),
         optparse.make_option("--logfile-debug", action="store_true", dest="logfile_debug", default=False,
                              help="Also log debug messages to the log file"),
+        optparse.make_option("--graph", action="store_true", dest="do_graph", default=False,
+                             help="Output all dependency graphs"),
     )
 
-    def handle(self, dry_run=False, include=None, exclude=None, logfile=None, logfile_debug=False, do_list=False, *args, **opts):
+    def handle(self, dry_run=False, include=None, exclude=None, logfile=None, logfile_debug=False, do_list=False, do_graph=False, *args, **opts):
         FORMAT = "%(asctime)-15s %(levelname)s %(message)s"
         handlers = []
 
@@ -109,5 +111,7 @@ class Command(BaseCommand):
         if do_list:
             for name in hk.list_run(run_filter=run_filter):
                 print(name)
+        elif do_graph:
+            hk.make_dot(sys.stdout)
         else:
             hk.run(run_filter=run_filter)
