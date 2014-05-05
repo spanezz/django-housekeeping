@@ -21,10 +21,13 @@ from __future__ import division
 from __future__ import unicode_literals
 from .task import Task
 from . import toposort
+from .report import Report
 from collections import defaultdict
+import os
+import os.path
+import datetime
 import sys
 import time
-import datetime
 import inspect
 import logging
 
@@ -217,12 +220,56 @@ class Stage(object):
             self.results[identifier] = self.run_task(task, mock)
 
 
+class Outdir(object):
+    def __init__(self, root):
+        self.root = root
+        self.outdir = None
+
+    def init(self, hk):
+        # Ensure the root dir exists
+        if not os.path.exists(self.root):
+            log.warning("output directory %s does not exist: creating it", self.root)
+            os.makedirs(self.root, 0777)
+
+        # Create a new directory for this maintenance run
+        candidate = None
+        while True:
+            if candidate is None:
+                candidate = os.path.join(self.root, datetime.datetime.utcnow().strftime("%Y%m%d"))
+            else:
+                time.sleep(0.5)
+                candidate = os.path.join(self.root, datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S"))
+            try:
+                os.mkdir(candidate, 0777)
+                break
+            except OSError as e:
+                import errno
+                if e.errno != errno.EEXIST:
+                    raise
+
+        self.outdir = candidate
+
+    def make_path(self, relpath):
+        """
+        Make sure the given subpath exists inside the output directory, and
+        return the full path to it
+        """
+        res = os.path.join(self.outdir, relpath)
+        if not os.path.exists(res):
+            os.makedirs(res, 0777)
+        return res
+
+    def cleanup(self):
+        pass
+        # TODO: optionally tar everything and remove the directory
+
+
 
 class Housekeeping(object):
     """
     Housekeeping runner, that runs all Tasks from all installed apps
     """
-    def __init__(self, dry_run=False, test_mock=None):
+    def __init__(self, dry_run=False, test_mock=None, outdir=None, report=False):
         """
         dry_run: if true, everything will be done except permanent changes
         task_filter: set to a function to filter what tasks will be run. Note
@@ -236,6 +283,11 @@ class Housekeeping(object):
 
         self.dry_run = dry_run
         self.test_mock = test_mock
+        if outdir is not None:
+            self.outdir = Outdir(outdir)
+        else:
+            self.outdir = None
+        self.report = None
 
         # All registered task classes
         self.task_classes = set()
@@ -255,6 +307,14 @@ class Housekeeping(object):
         """
         from django.conf import settings
         from django.utils.importlib import import_module
+
+        # Try to use the HOUSEKEEPING_ROOT Django setting to instantiate a
+        # outdir, if we do not have one yet
+        if self.outdir is None:
+            outdir = getattr(settings, "HOUSEKEEPING_ROOT", None)
+            if outdir is not None:
+                self.outdir = Outdir(outdir)
+
         seen = set()
         for app_name in settings.INSTALLED_APPS:
             mod_name = "{}.housekeeping".format(app_name)
@@ -315,6 +375,11 @@ class Housekeeping(object):
         # Schedule task instantiation
         self.task_schedule.schedule()
 
+        # Create output directory
+        if self.outdir:
+            self.outdir.init(self)
+            self.report = Report(self)
+
         # Instantiate all tasks
         for task_cls in self.task_schedule.sequence:
             # Instantiate the task
@@ -343,6 +408,10 @@ class Housekeeping(object):
         self.stage_schedule.schedule()
         for stage in self.stages.itervalues():
             stage.schedule()
+
+        if self.outdir:
+            self.report.generate()
+            self.outdir.cleanup()
 
 
     def run(self, run_filter=None):

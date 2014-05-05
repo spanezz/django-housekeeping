@@ -57,6 +57,8 @@ class Command(BaseCommand):
                              help="Exclude stages/tasks matching this shell-like pattern. Can be used multiple times."),
         optparse.make_option("--list", action="store_true", dest="do_list", default=False,
                              help="List all available tasks"),
+        optparse.make_option("--outdir", action="store", dest="outdir", default=None,
+                             help="Store housekeeping output in a subdirectory of this directory. Default is not to write any output."),
         optparse.make_option("--logfile", action="store", dest="logfile", default=None,
                              help="Also log all messages to the given file. You can use strftime escape sequences."),
         optparse.make_option("--logfile-debug", action="store_true", dest="logfile_debug", default=False,
@@ -65,7 +67,7 @@ class Command(BaseCommand):
                              help="Output all dependency graphs"),
     )
 
-    def handle(self, dry_run=False, include=None, exclude=None, logfile=None, logfile_debug=False, do_list=False, do_graph=False, *args, **opts):
+    def handle(self, dry_run=False, include=None, exclude=None, logfile=None, logfile_debug=False, do_list=False, do_graph=False, outdir=None, *args, **opts):
         FORMAT = "%(asctime)-15s %(levelname)s %(message)s"
         handlers = []
 
@@ -105,7 +107,7 @@ class Command(BaseCommand):
         run_filter = None
         if include is not None or exclude is not None:
             run_filter = IncludeExcludeFilter(include, exclude)
-        hk = Housekeeping(dry_run=dry_run)
+        hk = Housekeeping(dry_run=dry_run, outdir=outdir)
         hk.autodiscover()
         hk.init()
         if do_list:

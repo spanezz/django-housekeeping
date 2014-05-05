@@ -21,6 +21,7 @@ from __future__ import unicode_literals
 from . import Task, Housekeeping
 from . import toposort
 import unittest
+import os.path
 
 class TestHousekeeping(unittest.TestCase):
     def test_run(self):
@@ -117,3 +118,27 @@ class TestDependencies(unittest.TestCase):
 
         self.assertEquals(Associator.run_count, 1)
         self.assertEquals(Associator.call_history, ["foo"])
+
+class TestReport(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.root = tempfile.mkdtemp()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.root)
+
+    def test_report(self):
+        class TestTask(Task):
+            STAGES = ["main", "stats"]
+            def run_main(self, stage): pass
+            def run_stats(self, stage): pass
+        h = Housekeeping(outdir=self.root, report=True)
+        h.register_task(TestTask)
+        h.init()
+        h.run()
+
+        self.assertTrue(os.path.isfile(os.path.join(h.outdir.outdir, "report/tasks.dot")))
+        self.assertTrue(os.path.isfile(os.path.join(h.outdir.outdir, "report/stages.dot")))
+        self.assertTrue(os.path.isfile(os.path.join(h.outdir.outdir, "report/stage-main.dot")))
+        self.assertTrue(os.path.isfile(os.path.join(h.outdir.outdir, "report/stage-stats.dot")))
