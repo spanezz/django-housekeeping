@@ -1,0 +1,2 @@
+version=3
+https://github.com/spanezz/django-housekeeping/tags .*/v(\d[\d\.]*)\.tar\.gz

@@ -1,0 +1,12 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: django-housekeeping
+Upstream-Contact: Enrico Zini <enrico@enricozini.org>
+Source: https://github.com/spanezz/django-housekeeping
+
+Files: *
+Copyright: 2013 Enrico Zini <enrico@enricozini.org>
+License: LGPL-3+
+
+License: LGPL-3+
+ The full text of the LGPL version 3 is distributed in
+ /usr/share/common-licenses/LGPL-3 on Debian systems.
