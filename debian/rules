@@ -3,8 +3,8 @@ export DH_VERBOSE=1
 export PYBUILD_NAME=django-housekeeping
 
 %:
-#	dh $@ --with python2,python3 --buildsystem=pybuild
-	dh $@ --with python2 --buildsystem=pybuild
+	dh $@ --with python2,python3 --buildsystem=pybuild
+#	dh $@ --with python2 --buildsystem=pybuild
 
 
 pn = $(shell dpkg-parsechangelog | grep ^Source  | cut -d\  -f2)
