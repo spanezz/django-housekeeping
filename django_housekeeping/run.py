@@ -31,6 +31,13 @@ import time
 import inspect
 import logging
 
+import six
+if sys.version_info[0] >= 3: # Python 3
+    global unicode
+    unicode = str
+    global xrange
+    xrange = range
+
 log = logging.getLogger(__name__)
 
 class RunInfo(object):
@@ -96,7 +103,7 @@ class Schedule(object):
         for i in xrange(len(self.sequence) - 1):
             selected.add((self.sequence[i], self.sequence[i+1]))
 
-        for prev, arcs in self.graph.iteritems():
+        for prev, arcs in six.iteritems(self.graph):
             for next in arcs:
                 if (prev, next) in selected:
                     selected.discard((prev, next))
@@ -126,10 +133,10 @@ class Stage(object):
         self.task_sequence to the sorted list of Task objects
         """
         # Create nodes for all tasks
-        for task in self.tasks.itervalues():
+        for task in six.itervalues(self.tasks):
             self.task_schedule.add_node(task.IDENTIFIER)
 
-        for task in self.tasks.itervalues():
+        for task in six.itervalues(self.tasks):
             next = task.IDENTIFIER
             for prev in (x.IDENTIFIER for x in task.DEPENDS):
                 if prev not in self.task_schedule.graph:
@@ -229,7 +236,7 @@ class Outdir(object):
         # Ensure the root dir exists
         if not os.path.exists(self.root):
             log.warning("output directory %s does not exist: creating it", self.root)
-            os.makedirs(self.root, 0777)
+            os.makedirs(self.root, 0o777)
 
         # Create a new directory for this maintenance run
         candidate = None
@@ -240,7 +247,7 @@ class Outdir(object):
                 time.sleep(0.5)
                 candidate = os.path.join(self.root, datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S"))
             try:
-                os.mkdir(candidate, 0777)
+                os.mkdir(candidate, 0o777)
                 break
             except OSError as e:
                 import errno
@@ -256,7 +263,7 @@ class Outdir(object):
         """
         res = os.path.join(self.outdir, relpath)
         if not os.path.exists(res):
-            os.makedirs(res, 0777)
+            os.makedirs(res, 0o777)
         return res
 
     def cleanup(self):
@@ -408,7 +415,7 @@ class Housekeeping(object):
 
         # Schedule execution of stages and tasks
         self.stage_schedule.schedule()
-        for stage in self.stages.itervalues():
+        for stage in six.itervalues(self.stages):
             stage.schedule()
 
     def run(self, run_filter=None):
@@ -451,7 +458,7 @@ class Housekeeping(object):
         self.stage_schedule.make_dot(out)
         print("}", file=out)
 
-        for stage in self.stages.itervalues():
+        for stage in six.itervalues(self.stages):
             print("digraph {} {{".format(stage.name), file=out)
             print('  label="Stage {}"'.format(stage.name), file=out)
             stage.task_schedule.make_dot(out)

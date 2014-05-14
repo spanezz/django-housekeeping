@@ -23,6 +23,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import sys
+if sys.version_info[0] >= 3: # Python 3
+    global unicode
+    unicode = str
+
 # From: http://www.logarithmic.net/pfh/blog/01208083168
 # and: http://www.logarithmic.net/pfh-files/blog/01208083168/tarjan.py
 def strongly_connected_components(graph):

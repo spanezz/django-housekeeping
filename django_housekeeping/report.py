@@ -23,6 +23,8 @@ import io
 import os, os.path
 import sys
 
+import six
+
 class Report(object):
     def __init__(self, hk):
         self.hk = hk
@@ -118,7 +120,7 @@ class Report(object):
             print('  label="Stages"', file=out)
             self.hk.stage_schedule.make_dot(out)
             print("}", file=out)
-        for stage in self.hk.stages.itervalues():
+        for stage in six.itervalues(self.hk.stages):
             with self.make_dotfile("stage-{}.dot".format(stage.name)) as out:
                 print("digraph {} {{".format(stage.name), file=out)
                 print('  label="Stage {}"'.format(stage.name), file=out)

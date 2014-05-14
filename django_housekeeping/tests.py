@@ -34,11 +34,11 @@ class TestHousekeeping(unittest.TestCase):
         h.register_task(TestTask)
         h.init()
         h.run()
-        self.assertEquals(TestTask.run_count, 1)
+        self.assertEqual(TestTask.run_count, 1)
 
 class TestToposort(unittest.TestCase):
     def test_simple(self):
-        self.assertEquals(toposort.sort({ 0 : [2], 1: [2], 2: [3], 3: [] }), [1, 0, 2, 3])
+        self.assertEqual(toposort.sort({ 0 : [2], 1: [2], 2: [3], 3: [] }), [1, 0, 2, 3])
         self.assertRaises(ValueError, toposort.sort, { 0: [1], 1: [2], 2: [3], 3: [1] })
         self.assertRaises(ValueError, toposort.sort, { 0: [1], 1: [0], 2: [3], 3: [2] })
 
@@ -71,7 +71,7 @@ class TestToposort(unittest.TestCase):
         h.register_task(LoadData)
         h.init()
         order = [(stage.name, task.IDENTIFIER) for stage, task in h.get_schedule()]
-        self.assertEquals(order, [
+        self.assertEqual(order, [
             ('backup', 'django_housekeeping.tests.Backup1'),
             ('backup', 'django_housekeeping.tests.Backup2'),
             ('main', 'django_housekeeping.tests.LoadData'),
@@ -89,7 +89,7 @@ class TestToposort(unittest.TestCase):
         h.register_task(Backup)
         h.init()
         order = [(stage.name, task.IDENTIFIER) for stage, task in h.get_schedule()]
-        self.assertEquals(order, [
+        self.assertEqual(order, [
             (u'backup', u'django_housekeeping.tests.Backup'),
         ])
 
@@ -116,8 +116,8 @@ class TestDependencies(unittest.TestCase):
         h.init()
         h.run()
 
-        self.assertEquals(Associator.run_count, 1)
-        self.assertEquals(Associator.call_history, ["foo"])
+        self.assertEqual(Associator.run_count, 1)
+        self.assertEqual(Associator.call_history, ["foo"])
 
 class TestReport(unittest.TestCase):
     def setUp(self):
