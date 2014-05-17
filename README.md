@@ -60,3 +60,12 @@ using `--include` and `--exclude`. See `./manage.py housekeeping --help` for
 details.
 
 
+## Configuration
+
+There is currently only one configuration key for `settings.py`:
+`HOUSEKEEPING_ROOT`. Set it to a string with a directory pathname, and it is
+the same as if `--outdir=OUTDIR` is set.
+
+Example:
+
+	HOUSEKEEPING_ROOT = "/srv/mysite/housekeeping/"
