@@ -256,11 +256,13 @@ class Outdir(object):
 
         self.outdir = candidate
 
-    def make_path(self, relpath):
+    def path(self, relpath=None):
         """
         Make sure the given subpath exists inside the output directory, and
         return the full path to it
         """
+        if relpath is None:
+            return self.outdir
         res = os.path.join(self.outdir, relpath)
         if not os.path.exists(res):
             os.makedirs(res, 0o777)

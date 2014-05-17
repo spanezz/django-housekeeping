@@ -53,7 +53,7 @@ class Report(object):
     def generate(self):
         if not self.hk.outdir: return
         # Main report dir
-        self.root = self.hk.outdir.make_path("report")
+        self.root = self.hk.outdir.path("report")
 
         self.generate_dotfiles()
 
