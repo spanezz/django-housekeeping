@@ -10,6 +10,8 @@ provide infrastructure that other tasks can use.
 
 ## Example
 
+### Code
+
     # myapp/housekeeping.py:
     import django_housekeeping as hk
 
@@ -38,4 +40,23 @@ provide infrastructure that other tasks can use.
 
         def run_main(self, stage):
             # ...compute monthly averages from daily averages...
+
+### Execution
+
+django\_housekeeping adds a `housekeeping` management command that runs all
+tasks. You can schedule `./manage.py housekeeping` to run once a day to
+automate the site maintenance.
+
+To run the housekeeping tasks, just run:
+
+    $ ./manage.py housekeeping
+
+To see the order in which the tasks would be run, use:
+
+    $ ./manage.py housekeeping --list
+
+You can use `--logfile` to write a verbose log file, or run only some tasks
+using `--include` and `--exclude`. See `./manage.py housekeeping --help` for
+details.
+
 
