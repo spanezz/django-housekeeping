@@ -23,7 +23,7 @@ from distutils.core import setup
 
 setup(
     name = "django_housekeeping",
-    version = "0.1",
+    version = "1.0",
     description = "Pluggable housekeeping framework for Django sites",
     author = ["Enrico Zini"],
     author_email = ["enrico@enricozini.org"],
