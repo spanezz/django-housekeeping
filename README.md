@@ -14,6 +14,11 @@ provide infrastructure that other tasks can use.
 
     # myapp/housekeeping.py:
     import django_housekeeping as hk
+    import logging
+
+    # Logging will be properly configured and can be used at will
+    log = logging.getLogger(__name__)
+
 
     # Order of execution of the housekeeping stages defined in this module
     STAGES = ["backup", "main"]
