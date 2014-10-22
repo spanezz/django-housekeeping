@@ -36,9 +36,12 @@ class IncludeExcludeFilter(object):
     def __call__(self, name):
         import fnmatch
         if self.include is not None:
+            included = False
             for pattern in self.include:
-                if not fnmatch.fnmatch(name, pattern):
-                    return False
+                if fnmatch.fnmatch(name, pattern):
+                    included = True
+            if not included:
+                return False
         if self.exclude is not None:
             for pattern in self.exclude:
                 if fnmatch.fnmatch(name, pattern):
