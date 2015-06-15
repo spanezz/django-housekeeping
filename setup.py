@@ -19,7 +19,13 @@ License along with this library.
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
-from distutils.core import setup
+try:
+    import setuptools
+    from setuptools import setup
+    from setuptools.command import install
+except ImportError:
+    from distutils.core import setup
+    from distutils.command import install
 
 setup(
     name = "django_housekeeping",
@@ -31,5 +37,6 @@ setup(
     license = "https://www.gnu.org/licenses/lgpl.html",
     packages = ["django_housekeeping",
                 "django_housekeeping.management",
-                "django_housekeeping.management.commands"]
+                "django_housekeeping.management.commands"],
+    install_requires = ['six']
 )
