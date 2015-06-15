@@ -1,7 +1,9 @@
-django-housekeeping (0.1-1) UNRELEASED; urgency=low
+django-housekeeping (1.0-1) unstable; urgency=low
 
-  * source package automatically created by stdeb 0.6.0+git
-  * fixed packages param in setup and avoid unicode_literals in setup.py
-  * prepared patch to support python3 using six
+  [ Marco Bardelli ]
+  * Initial package. Closes: #748875
 
- -- Marco Bardelli <bardelli.marco@gmail.com>  Mon, 05 May 2014 21:43:35 +0200
+  [ Gianfranco Costamagna ]
+  * Refactor packaging with some minor fixes.
+
+ -- Marco Bardelli <bardelli.marco@gmail.com>  Mon, 15 Jun 2015 14:00:21 +0200

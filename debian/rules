@@ -1,22 +1,6 @@
 #!/usr/bin/make -f
-export DH_VERBOSE=1
+#export DH_VERBOSE=1
 export PYBUILD_NAME=django-housekeeping
 
 %:
 	dh $@ --with python2,python3 --buildsystem=pybuild
-#	dh $@ --with python2 --buildsystem=pybuild
-
-
-pn = $(shell dpkg-parsechangelog | grep ^Source  | cut -d\  -f2)
-ov = $(shell dpkg-parsechangelog | grep ^Version | cut -d\  -f2 | cut -d- -f1)
-git-orig-source:
-	dh_testdir
-	test -d .git && \
-	git archive --prefix=$(pn)-$(ov)/ upstream-gh/master | \
-	xz -9c > ../$(pn)_$(ov).orig.tar.xz || true
-
-# waiting for upstream release ... use git
-get-orig-source:
-	dh_testdir
-	test -e ../$(pn)_$(ov).orig.tar.xz || \
-		make -f debian/rules git-orig-source

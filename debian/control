@@ -2,23 +2,42 @@ Source: django-housekeeping
 Maintainer: Marco Bardelli <bardelli.marco@gmail.com>
 Section: python
 Priority: optional
-Build-Depends: debhelper (>= 9), dh-python, quilt, python-all (>= 2.6.6-3),
- python3-all, python3-six, python-six
-Standards-Version: 3.9.5
+Build-Depends: debhelper (>= 9),
+               dh-python,
+               python-all,
+               python-setuptools,
+               python-six,
+               python3-all,
+               python3-setuptools,
+               python3-six,
+               quilt
+Standards-Version: 3.9.6
 Homepage: https://github.com/spanezz/django-housekeeping
-X-Python-Version: >= 2.6
-X-Python3-Version: >= 3.2
+Vcs-Git: git://anonscm.debian.org/collab-maint/django-housekeeping.git
+Vcs-Browser: http://anonscm.debian.org/cgit/collab-maint/django-housekeeping.git
 
 Package: python-django-housekeeping
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends},
- python-six
-Description: Pluggable housekeeping framework for Django sites
- Extensible framework to manage inter-dependents tasks execution.
+Depends: ${misc:Depends}, ${python:Depends}
+Recommends: python-django
+Description: Pluggable housekeeping framework for Django sites in Python 2
+ django\_housekeeping provides a management command that finds and run
+ tasks defined by your Django apps.
+ .
+ Tasks can declare dependencies on each other, run in multiple stages
+ and provide infrastructure that other tasks can use.
+ .
+ This is the Python 2 version of the package.
 
 Package: python3-django-housekeeping
 Architecture: all
-Depends: ${misc:Depends}, ${python3:Depends},
- python3-six
-Description: Pluggable housekeeping framework for Django sites
- Extensible framework to manage inter-dependents tasks execution.
+Depends: ${misc:Depends}, ${python3:Depends}
+Recommends: python3-django
+Description: Pluggable housekeeping framework for Django sites in Python 3
+ django\_housekeeping provides a management command that finds and run
+ tasks defined by your Django apps.
+ .
+ Tasks can declare dependencies on each other, run in multiple stages
+ and provide infrastructure that other tasks can use.
+ .
+ This is the Python 3 version of the package.
