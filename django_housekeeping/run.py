@@ -317,7 +317,8 @@ class Housekeeping(object):
         Autodiscover tasks from django apps
         """
         from django.conf import settings
-        from django.utils.importlib import import_module
+        from django.apps import apps
+        from importlib import import_module
 
         # Try to use the HOUSEKEEPING_ROOT Django setting to instantiate a
         # outdir, if we do not have one yet
@@ -327,8 +328,8 @@ class Housekeeping(object):
                 self.outdir = Outdir(outdir)
 
         seen = set()
-        for app_name in settings.INSTALLED_APPS:
-            mod_name = "{}.housekeeping".format(app_name)
+        for app in apps.get_app_configs():
+            mod_name = "{}.housekeeping".format(app.name)
             try:
                 mod = import_module(mod_name)
             except ImportError:
@@ -338,7 +339,7 @@ class Housekeeping(object):
                 if issubclass(cls, Task) and cls != Task:
                     if cls in seen: continue
                     seen.add(cls)
-                    cls.IDENTIFIER = "{}.{}".format(app_name, cls_name)
+                    cls.IDENTIFIER = "{}.{}".format(app.name, cls_name)
                     log.debug("autodiscover: found task %s", cls.IDENTIFIER)
                     self.register_task(cls)
 

@@ -21,7 +21,6 @@ from __future__ import division
 from __future__ import unicode_literals
 from django.core.management.base import BaseCommand, CommandError
 from django_housekeeping import Housekeeping
-import optparse
 import datetime
 import sys
 import logging
@@ -51,24 +50,24 @@ class IncludeExcludeFilter(object):
 
 class Command(BaseCommand):
     help = 'Run site housekeeping'
-    option_list = BaseCommand.option_list + (
-        optparse.make_option("--dry-run", action="store_true", dest="dry_run", default=None,
+
+    def add_arguments(self, parser):
+        parser.add_argument("--dry-run", action="store_true", dest="dry_run", default=None,
                              help="Go through all the motions without making any changes"),
-        optparse.make_option("--include", action="append", dest="include", default=None,
+        parser.add_argument("--include", action="append", dest="include", default=None,
                              help="Include stages/tasks matching this shell-like pattern. Can be used multiple times."),
-        optparse.make_option("--exclude", action="append", dest="exclude", default=None,
+        parser.add_argument("--exclude", action="append", dest="exclude", default=None,
                              help="Exclude stages/tasks matching this shell-like pattern. Can be used multiple times."),
-        optparse.make_option("--list", action="store_true", dest="do_list", default=False,
+        parser.add_argument("--list", action="store_true", dest="do_list", default=False,
                              help="List all available tasks"),
-        optparse.make_option("--outdir", action="store", dest="outdir", default=None,
+        parser.add_argument("--outdir", action="store", dest="outdir", default=None,
                              help="Store housekeeping output in a subdirectory of this directory. Default is not to write any output."),
-        optparse.make_option("--logfile", action="store", dest="logfile", default=None,
+        parser.add_argument("--logfile", action="store", dest="logfile", default=None,
                              help="Also log all messages to the given file. You can use strftime escape sequences."),
-        optparse.make_option("--logfile-debug", action="store_true", dest="logfile_debug", default=False,
+        parser.add_argument("--logfile-debug", action="store_true", dest="logfile_debug", default=False,
                              help="Also log debug messages to the log file"),
-        optparse.make_option("--graph", action="store_true", dest="do_graph", default=False,
+        parser.add_argument("--graph", action="store_true", dest="do_graph", default=False,
                              help="Output all dependency graphs"),
-    )
 
     def handle(self, dry_run=False, include=None, exclude=None, logfile=None, logfile_debug=False, do_list=False, do_graph=False, outdir=None, *args, **opts):
         FORMAT = "%(asctime)-15s %(levelname)s %(message)s"
