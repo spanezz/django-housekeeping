@@ -332,7 +332,9 @@ class Housekeeping(object):
             mod_name = "{}.housekeeping".format(app.name)
             try:
                 mod = import_module(mod_name)
-            except ImportError:
+            except ImportError as e:
+                if e.name != mod_name:
+                    raise
                 continue
             log.debug("autodiscover: found module %s", mod_name)
             for cls_name, cls in inspect.getmembers(mod, inspect.isclass):
