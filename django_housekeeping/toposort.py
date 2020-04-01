@@ -17,16 +17,8 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
+from __future__ import annotations
 
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
-import sys
-if sys.version_info[0] >= 3: # Python 3
-    global unicode
-    unicode = str
 
 # From: http://www.logarithmic.net/pfh/blog/01208083168
 # and: http://www.logarithmic.net/pfh-files/blog/01208083168/tarjan.py
@@ -69,7 +61,8 @@ def strongly_connected_components(graph):
             while True:
                 successor = stack.pop()
                 connected_component.append(successor)
-                if successor == node: break
+                if successor == node:
+                    break
 
             # storing the result
             result.append(connected_component)
@@ -113,7 +106,7 @@ def sort(graph):
     cycles = []
     for items in strongly_connected_components(graph):
         if len(items) > 1:
-            cycles.append("({})".format(", ".join(unicode(x) for x in items)))
+            cycles.append("({})".format(", ".join(str(x) for x in items)))
 
     if cycles:
         if len(cycles) > 1:

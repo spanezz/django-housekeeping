@@ -14,11 +14,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
-
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+from __future__ import annotations
 import inspect
 
 # Order of stages.
@@ -29,7 +25,8 @@ import inspect
 # In each stage, tasks are run in dependency order.
 STAGES = ["main"]
 
-class Task(object):
+
+class Task:
     """
     A housekeeping task. Any subclass of this in an appname.housekeeping module
     will be automatically found and run during housekeeping
@@ -53,25 +50,21 @@ class Task(object):
         """
         self.hk = hk
 
-    #def run_main(self, stage):
-    #    """
-    #    Run this housekeeping task
-    #    """
-    #    pass
-
     def get_stages(self):
         """
         Get the ordered list of stages for this task.
         """
         # First look in the object or its class
         res = getattr(self, "STAGES", None)
-        if res is not None: return res
+        if res is not None:
+            return res
 
         module = inspect.getmodule(self.__class__)
 
         # If that fails, look in the module
         res = getattr(module, "STAGES", None)
-        if res is not None: return res
+        if res is not None:
+            return res
 
         # If that fails, return a default
         return ("main", )

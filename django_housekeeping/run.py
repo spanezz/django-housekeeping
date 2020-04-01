@@ -1,4 +1,3 @@
-# coding: utf8
 # Pluggable housekeeping framework for Django sites
 #
 # Copyright (C) 2013--2014  Enrico Zini <enrico@enricozini.org>
@@ -15,10 +14,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+from __future__ import annotations
 from .task import Task
 from . import toposort
 from .report import Report
@@ -31,16 +27,10 @@ import time
 import inspect
 import logging
 
-import six
-if sys.version_info[0] >= 3: # Python 3
-    global unicode
-    unicode = str
-    global xrange
-    xrange = range
-
 log = logging.getLogger(__name__)
 
-class RunInfo(object):
+
+class RunInfo:
     """
     Run a task and store info about its execution
     """
@@ -53,18 +43,19 @@ class RunInfo(object):
         self.exception = None
         self.success = False
         self.elapsed = None
-        self.clock_start = time.clock()
+        self.clock_start = time.perf_counter()
 
     def set_success(self):
-        self.elapsed = datetime.timedelta(seconds=time.clock() - self.clock_start)
+        self.elapsed = datetime.timedelta(seconds=time.perf_counter() - self.clock_start)
         self.exception = None
         self.skipped_reason = None
         self.success = True
         self.executed = True
-        log.info("%s:%s:run_%s: ran successfully, %s", self.stage.name, self.task.IDENTIFIER, self.stage.name, self.elapsed)
+        log.info(
+            "%s:%s:run_%s: ran successfully, %s", self.stage.name, self.task.IDENTIFIER, self.stage.name, self.elapsed)
 
     def set_exception(self, type, value, traceback):
-        self.elapsed = datetime.timedelta(seconds=time.clock() - self.clock_start)
+        self.elapsed = datetime.timedelta(seconds=time.perf_counter() - self.clock_start)
         self.exception = (type, value, traceback)
         self.skipped_reason = None
         self.success = False
@@ -77,10 +68,11 @@ class RunInfo(object):
         self.skipped_reason = reason
         self.success = False
         self.executed = False
-        log.info("%s:%s:run_%s: skipped: %s", self.stage.name, self.task.IDENTIFIER, self.stage.name, self.skipped_reason)
+        log.info(
+            "%s:%s:run_%s: skipped: %s", self.stage.name, self.task.IDENTIFIER, self.stage.name, self.skipped_reason)
 
 
-class Schedule(object):
+class Schedule:
     def __init__(self):
         self.graph = defaultdict(set)
         self.sequence = None
@@ -94,16 +86,16 @@ class Schedule(object):
     def schedule(self):
         self.sequence = toposort.sort(self.graph)
 
-    def make_dot(self, out, formatter=unicode):
+    def make_dot(self, out, formatter=str):
         for node in self.sequence:
             print('  "{}"'.format(formatter(node)), file=out)
 
         # Arcs that have been selected as the final sequence
         selected = set()
-        for i in xrange(len(self.sequence) - 1):
+        for i in range(len(self.sequence) - 1):
             selected.add((self.sequence[i], self.sequence[i+1]))
 
-        for prev, arcs in six.iteritems(self.graph):
+        for prev, arcs in self.graph.items():
             for next in arcs:
                 if (prev, next) in selected:
                     selected.discard((prev, next))
@@ -115,7 +107,8 @@ class Schedule(object):
         for prev, next in selected:
             print('  "{}" -> "{}" [color=red, style=dashed];'.format(formatter(prev), formatter(next)), file=out)
 
-class Stage(object):
+
+class Stage:
     def __init__(self, hk, name):
         self.hk = hk
         self.name = name
@@ -133,14 +126,16 @@ class Stage(object):
         self.task_sequence to the sorted list of Task objects
         """
         # Create nodes for all tasks
-        for task in six.itervalues(self.tasks):
+        for task in self.tasks.values():
             self.task_schedule.add_node(task.IDENTIFIER)
 
-        for task in six.itervalues(self.tasks):
+        for task in self.tasks.values():
             next = task.IDENTIFIER
             for prev in (x.IDENTIFIER for x in task.DEPENDS):
                 if prev not in self.task_schedule.graph:
-                    log.debug("%s: skipping dependency %s -> %s that does not seem to be relevant for this stage", self.name, prev, next)
+                    log.debug(
+                        "%s: skipping dependency %s -> %s that does not seem to be relevant for this stage",
+                        self.name, prev, next)
                     continue
                 self.task_schedule.add_edge(prev, next)
 
@@ -177,7 +172,8 @@ class Stage(object):
         # correctly
         for t in task.DEPENDS:
             # Ignore dependencies that do not want to run in this stage
-            if t.IDENTIFIER not in self.tasks: continue
+            if t.IDENTIFIER not in self.tasks:
+                continue
             exinfo = self.get_results(t)
             if exinfo is None:
                 return "its dependency {} has not been run".format(t.IDENTIFIER)
@@ -206,7 +202,7 @@ class Stage(object):
                     method(self)
             except KeyboardInterrupt:
                 raise
-            except:
+            except Exception:
                 log.exception("%s: %s failed", task.IDENTIFIER, meth_name)
                 run_info.set_exception(*sys.exc_info())
             else:
@@ -273,8 +269,7 @@ class Outdir(object):
         # TODO: optionally tar everything and remove the directory
 
 
-
-class Housekeeping(object):
+class Housekeeping:
     """
     Housekeeping runner, that runs all Tasks from all installed apps
     """
@@ -339,7 +334,8 @@ class Housekeeping(object):
             log.debug("autodiscover: found module %s", mod_name)
             for cls_name, cls in inspect.getmembers(mod, inspect.isclass):
                 if issubclass(cls, Task) and cls != Task:
-                    if cls in seen: continue
+                    if cls in seen:
+                        continue
                     seen.add(cls)
                     cls.IDENTIFIER = "{}.{}".format(app.name, cls_name)
                     log.debug("autodiscover: found task %s", cls.IDENTIFIER)
@@ -420,7 +416,7 @@ class Housekeeping(object):
 
         # Schedule execution of stages and tasks
         self.stage_schedule.schedule()
-        for stage in six.itervalues(self.stages):
+        for stage in self.stages.values():
             stage.schedule()
 
     def run(self, run_filter=None):
@@ -444,18 +440,10 @@ class Housekeeping(object):
                 continue
             yield(name)
 
-    #def log_stats(self):
-    #    for task in self.tasks:
-    #        ex = self.get_results(task)
-    #        if ex is None:
-    #            log.info("%s: not run", task.IDENTIFIER)
-    #        else:
-    #            ex.log_stats()
-
     def make_dot(self, out):
         print("digraph TASKS {", file=out)
         print('  label="Tasks"', file=out)
-        self.task_schedule.make_dot(out, formatter=lambda x:x.IDENTIFIER)
+        self.task_schedule.make_dot(out, formatter=lambda x: x.IDENTIFIER)
         print("}", file=out)
 
         print("digraph STAGES {", file=out)
@@ -463,7 +451,7 @@ class Housekeeping(object):
         self.stage_schedule.make_dot(out)
         print("}", file=out)
 
-        for stage in six.itervalues(self.stages):
+        for stage in self.stages.values():
             print("digraph {} {{".format(stage.name), file=out)
             print('  label="Stage {}"'.format(stage.name), file=out)
             stage.task_schedule.make_dot(out)

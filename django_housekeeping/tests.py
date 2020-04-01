@@ -14,19 +14,18 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+from __future__ import annotations
 from . import Task, Housekeeping
 from . import toposort
 import unittest
 import os.path
 
+
 class TestHousekeeping(unittest.TestCase):
     def test_run(self):
         class TestTask(Task):
             run_count = 0
+
             def run_main(self, stage):
                 TestTask.run_count += 1
 
@@ -36,32 +35,41 @@ class TestHousekeeping(unittest.TestCase):
         h.run()
         self.assertEqual(TestTask.run_count, 1)
 
+
 class TestToposort(unittest.TestCase):
     def test_simple(self):
-        self.assertEqual(toposort.sort({ 0 : [2], 1: [2], 2: [3], 3: [] }), [1, 0, 2, 3])
-        self.assertRaises(ValueError, toposort.sort, { 0: [1], 1: [2], 2: [3], 3: [1] })
-        self.assertRaises(ValueError, toposort.sort, { 0: [1], 1: [0], 2: [3], 3: [2] })
+        self.assertEqual(toposort.sort({0: [2], 1: [2], 2: [3], 3: []}), [1, 0, 2, 3])
+        with self.assertRaises(ValueError):
+            toposort.sort({0: [1], 1: [2], 2: [3], 3: [1]})
+        with self.assertRaises(ValueError):
+            toposort.sort({0: [1], 1: [0], 2: [3], 3: [2]})
 
     def test_real(self):
         class Backup1(Task):
-            STAGES = [ "backup", "main" ]
+            STAGES = ["backup", "main"]
+
             def run_backup(self): pass
 
         class Backup2(Task):
             DEPENDS = [Backup1]
-            STAGES = [ "backup", "main" ]
+            STAGES = ["backup", "main"]
+
             def run_backup(self): pass
 
         class LoadData(Task):
             NAME = "data"
-            STAGES = [ "main", "stats" ]
+            STAGES = ["main", "stats"]
+
             def run_main(self): pass
+
             def run_stats(self): pass
 
         class Consistency(Task):
             DEPENDS = [LoadData]
-            STAGES = [ "main", "stats" ]
+            STAGES = ["main", "stats"]
+
             def run_main(self): pass
+
             def run_stats(self): pass
 
         h = Housekeeping()
@@ -82,7 +90,8 @@ class TestToposort(unittest.TestCase):
 
     def test_stage_without_tasks(self):
         class Backup(Task):
-            STAGES = [ "backup", "main" ]
+            STAGES = ["backup", "main"]
+
             def run_backup(self): pass
 
         h = Housekeeping()
@@ -93,6 +102,7 @@ class TestToposort(unittest.TestCase):
             (u'backup', u'django_housekeeping.tests.Backup'),
         ])
 
+
 class TestDependencies(unittest.TestCase):
     def test_skipstage(self):
         class Associator(Task):
@@ -100,13 +110,16 @@ class TestDependencies(unittest.TestCase):
             call_history = []
             NAME = "associate"
             STAGES = ["main", "stats"]
+
             def run_stats(self, stage):
                 Associator.run_count += 1
+
             def __call__(self, name):
                 self.call_history.append(name)
 
         class AssociateFoo(Task):
             DEPENDS = [Associator]
+
             def run_main(self, stage):
                 self.hk.associate("foo")
 
@@ -118,6 +131,7 @@ class TestDependencies(unittest.TestCase):
 
         self.assertEqual(Associator.run_count, 1)
         self.assertEqual(Associator.call_history, ["foo"])
+
 
 class TestReport(unittest.TestCase):
     def setUp(self):
@@ -131,8 +145,11 @@ class TestReport(unittest.TestCase):
     def test_report(self):
         class TestTask(Task):
             STAGES = ["main", "stats"]
+
             def run_main(self, stage): pass
+
             def run_stats(self, stage): pass
+
         h = Housekeeping(outdir=self.root)
         h.register_task(TestTask)
         h.init()

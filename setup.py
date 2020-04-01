@@ -1,4 +1,4 @@
-#!/usr/bin/env/python
+#!/usr/bin/env/python3
 # coding: utf8
 """
 Copyright (C) 2013--2014 Enrico Zini <enrico@enricozini.org>
@@ -16,27 +16,21 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library.
 """
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
+from __future__ import annotations
 try:
-    import setuptools
     from setuptools import setup
-    from setuptools.command import install
 except ImportError:
     from distutils.core import setup
-    from distutils.command import install
 
 setup(
-    name = "django_housekeeping",
-    version = "1.0",
-    description = "Pluggable housekeeping framework for Django sites",
-    author = ["Enrico Zini"],
-    author_email = ["enrico@enricozini.org"],
-    url = "https://github.com/spanezz/django-housekeeping",
-    license = "https://www.gnu.org/licenses/lgpl.html",
-    packages = ["django_housekeeping",
-                "django_housekeeping.management",
-                "django_housekeeping.management.commands"],
-    install_requires = ['six']
+    name="django_housekeeping",
+    version="1.0",
+    description="Pluggable housekeeping framework for Django sites",
+    author="Enrico Zini",
+    author_email="enrico@enricozini.org",
+    url="https://github.com/spanezz/django-housekeeping",
+    license="https://www.gnu.org/licenses/lgpl.html",
+    packages=["django_housekeeping",
+              "django_housekeeping.management",
+              "django_housekeeping.management.commands"],
 )

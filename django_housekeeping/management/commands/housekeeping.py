@@ -14,12 +14,8 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
-
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-from django.core.management.base import BaseCommand, CommandError
+from __future__ import annotations
+from django.core.management.base import BaseCommand
 from django_housekeeping import Housekeeping
 import datetime
 import sys
@@ -27,7 +23,8 @@ import logging
 
 log = logging.getLogger(__name__)
 
-class IncludeExcludeFilter(object):
+
+class IncludeExcludeFilter:
     def __init__(self, include, exclude):
         self.include = include
         self.exclude = exclude
@@ -53,23 +50,27 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--dry-run", action="store_true", dest="dry_run", default=None,
-                             help="Go through all the motions without making any changes"),
+                            help="Go through all the motions without making any changes"),
         parser.add_argument("--include", action="append", dest="include", default=None,
-                             help="Include stages/tasks matching this shell-like pattern. Can be used multiple times."),
+                            help="Include stages/tasks matching this shell-like pattern. Can be used multiple times."),
         parser.add_argument("--exclude", action="append", dest="exclude", default=None,
-                             help="Exclude stages/tasks matching this shell-like pattern. Can be used multiple times."),
+                            help="Exclude stages/tasks matching this shell-like pattern. Can be used multiple times."),
         parser.add_argument("--list", action="store_true", dest="do_list", default=False,
-                             help="List all available tasks"),
+                            help="List all available tasks"),
         parser.add_argument("--outdir", action="store", dest="outdir", default=None,
-                             help="Store housekeeping output in a subdirectory of this directory. Default is not to write any output."),
+                            help="Store housekeeping output in a subdirectory of this directory."
+                                 " Default is not to write any output."),
         parser.add_argument("--logfile", action="store", dest="logfile", default=None,
-                             help="Also log all messages to the given file. You can use strftime escape sequences."),
+                            help="Also log all messages to the given file. You can use strftime escape sequences."),
         parser.add_argument("--logfile-debug", action="store_true", dest="logfile_debug", default=False,
-                             help="Also log debug messages to the log file"),
+                            help="Also log debug messages to the log file"),
         parser.add_argument("--graph", action="store_true", dest="do_graph", default=False,
-                             help="Output all dependency graphs"),
+                            help="Output all dependency graphs"),
 
-    def handle(self, dry_run=False, include=None, exclude=None, logfile=None, logfile_debug=False, do_list=False, do_graph=False, outdir=None, *args, **opts):
+    def handle(
+            self, dry_run=False, include=None, exclude=None, logfile=None,
+            logfile_debug=False, do_list=False, do_graph=False, outdir=None,
+            *args, **opts):
         FORMAT = "%(asctime)-15s %(levelname)s %(message)s"
         handlers = []
 

@@ -15,17 +15,14 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.
-from __future__ import print_function
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+from __future__ import annotations
 import io
-import os, os.path
+import os
+import os.path
 import sys
 
-import six
 
-class Report(object):
+class Report:
     def __init__(self, hk):
         self.hk = hk
         self.dotfiles = []
@@ -51,7 +48,8 @@ class Report(object):
         print("   +------------+---------------------------------------+", file=file)
 
     def generate(self):
-        if not self.hk.outdir: return
+        if not self.hk.outdir:
+            return
         # Main report dir
         self.root = self.hk.outdir.path("report")
 
@@ -69,7 +67,6 @@ class Report(object):
             print("", file=out)
             print("report.html: report.rst $(DOTFILES:.dot=.png)", file=out)
             print("\trst2html $< $@", file=out)
-
 
     def generate_report(self, file=sys.stdout):
         self.print_title("Housekeeping report", "=", file=file)
@@ -113,14 +110,14 @@ class Report(object):
         with self.make_dotfile("tasks.dot") as out:
             print("digraph TASKS {", file=out)
             print('  label="Tasks"', file=out)
-            self.hk.task_schedule.make_dot(out, formatter=lambda x:x.IDENTIFIER)
+            self.hk.task_schedule.make_dot(out, formatter=lambda x: x.IDENTIFIER)
             print("}", file=out)
         with self.make_dotfile("stages.dot") as out:
             print("digraph STAGES {", file=out)
             print('  label="Stages"', file=out)
             self.hk.stage_schedule.make_dot(out)
             print("}", file=out)
-        for stage in six.itervalues(self.hk.stages):
+        for stage in self.hk.stages.values():
             with self.make_dotfile("stage-{}.dot".format(stage.name)) as out:
                 print("digraph {} {{".format(stage.name), file=out)
                 print('  label="Stage {}"'.format(stage.name), file=out)
