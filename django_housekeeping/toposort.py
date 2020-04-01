@@ -1,7 +1,7 @@
 # coding: utf8
 # Pluggable housekeeping framework for Django sites
 #
-# Copyright (C) 2014  Enrico Zini <enrico@enricozini.org>
+# Copyright (C) 2014--2019  Enrico Zini <enrico@enricozini.org>
 # Based on code by Paul Harrison and Dries Verdegem released under the Public
 # Domain.
 #
@@ -22,7 +22,15 @@ from __future__ import annotations
 
 # From: http://www.logarithmic.net/pfh/blog/01208083168
 # and: http://www.logarithmic.net/pfh-files/blog/01208083168/tarjan.py
-def strongly_connected_components(graph):
+
+from typing import Dict, Set, Any, List
+from collections import Counter, deque
+
+Node = Any
+Graph = Dict[Node, Set[Node]]
+
+
+def strongly_connected_components(graph: Graph):
     """
     Tarjan's Algorithm (named for its discoverer, Robert Tarjan) is a graph theory algorithm
     for finding the strongly connected components of a graph.
@@ -36,7 +44,7 @@ def strongly_connected_components(graph):
     index = {}
     result = []
 
-    def strongconnect(node):
+    def strongconnect(node: Node):
         # set the depth index for this node to the smallest unused index
         index[node] = index_counter[0]
         lowlinks[node] = index_counter[0]
@@ -74,19 +82,19 @@ def strongly_connected_components(graph):
     return result
 
 
-def topological_sort(graph):
-    count = {}
-    for node in graph:
-        count[node] = 0
+def topological_sort(graph: Graph) -> List[Node]:
+    count: Counter = Counter()
     for node in graph:
         for successor in graph[node]:
             count[successor] += 1
 
-    ready = [node for node in graph if count[node] == 0]
+    # Use a deque to pop left efficiently, so we can preserve the graph
+    # insertion order when no other dependency information kicks in
+    ready = deque(node for node in graph if count[node] == 0)
 
     result = []
     while ready:
-        node = ready.pop(-1)
+        node = ready.popleft()
         result.append(node)
 
         for successor in graph[node]:
@@ -97,9 +105,14 @@ def topological_sort(graph):
     return result
 
 
-def sort(graph):
+def sort(graph: Graph) -> List[Node]:
     """
-    Linearize a dependency graph, throwing an exception if a cycle is detected
+    Linearize a dependency graph, throwing an exception if a cycle is detected.
+
+    When no dependencies intervene in ordering, the algorithm preserves the
+    original insertion order of the graph.
+
+    :arg graph: a dict mapping each node to a set() of adjacent nodes
     """
     # Compute the strongly connected components, throwing an exception if we
     # see cycles

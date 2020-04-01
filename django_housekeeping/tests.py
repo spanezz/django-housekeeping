@@ -38,7 +38,7 @@ class TestHousekeeping(unittest.TestCase):
 
 class TestToposort(unittest.TestCase):
     def test_simple(self):
-        self.assertEqual(toposort.sort({0: [2], 1: [2], 2: [3], 3: []}), [1, 0, 2, 3])
+        self.assertEqual(toposort.sort({0: [2], 1: [2], 2: [3], 3: []}), [0, 1, 2, 3])
         with self.assertRaises(ValueError):
             toposort.sort({0: [1], 1: [2], 2: [3], 3: [1]})
         with self.assertRaises(ValueError):
