@@ -24,7 +24,7 @@ except ImportError:
 
 setup(
     name="django_housekeeping",
-    version="1.1",
+    version="1.2",
     description="Pluggable housekeeping framework for Django sites",
     author="Enrico Zini",
     author_email="enrico@enricozini.org",
